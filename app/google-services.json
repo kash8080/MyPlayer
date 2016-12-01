@@ -1,0 +1,42 @@
+{
+  "project_info": {
+    "project_number": "715918731496",
+    "firebase_url": "https://myplayer-89cac.firebaseio.com",
+    "project_id": "myplayer-89cac",
+    "storage_bucket": "myplayer-89cac.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:715918731496:android:5407e543757bfb6a",
+        "android_client_info": {
+          "package_name": "com.example.rahul.myplayer"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "715918731496-kd7sv38a7mp4kio5uvnhrd52mq0rca72.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDNTQdy-adnfDMOlBa7YiFEiqXv_A6cIRw"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

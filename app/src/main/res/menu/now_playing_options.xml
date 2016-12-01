@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:title="play"
+        android:id="@+id/now_playing_play"
+        >
+    </item>
+    <item android:title="Remove from queue"
+        android:id="@+id/now_playing_removefromqueue"
+        >
+    </item>
+</menu>

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+
+    android:orientation="horizontal"
+    android:layout_width="match_parent"
+    android:layout_height="70dp"
+    android:paddingBottom="10dp"
+    android:background="?android:attr/selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true"
+
+
+    >
+<ImageView
+    android:layout_width="60dp"
+    android:layout_height="60dp"
+    android:padding="5dp"
+    android:src="@drawable/mp3"
+    android:id="@+id/songs_image"
+    />
+    <FrameLayout
+
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="right"
+        >
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginRight="50dp"
+        android:orientation="vertical"
+        android:layout_weight="1"
+
+        >
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:paddingTop="5dp"
+            android:paddingLeft="5dp"
+            android:textSize="14sp"
+            android:textColor="#333333"
+            android:id="@+id/songs_name"
+            android:fontFamily="serif-monospace"
+            android:singleLine="true" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="5dp"
+            android:textSize="12sp"
+            android:id="@+id/songs_artist"
+            />
+
+    </LinearLayout>
+
+
+
+        <LinearLayout
+    android:layout_width="wrap_content"
+    android:orientation="horizontal"
+    android:layout_height="60dp"
+    android:layout_gravity="right"
+    android:background="#00ffffff"
+    >
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/options"
+        android:id="@+id/options"
+        android:paddingLeft="10dp"
+        android:paddingTop="15dp"
+        android:paddingBottom="15dp"
+        android:paddingEnd="3dp"
+        android:background="#00ffffff"
+        />
+        <View
+            android:layout_width="10dp"
+            android:layout_height="match_parent"
+            android:background="#00ffffff"
+
+            >
+
+        </View>
+</LinearLayout>
+    </FrameLayout>
+</LinearLayout>
