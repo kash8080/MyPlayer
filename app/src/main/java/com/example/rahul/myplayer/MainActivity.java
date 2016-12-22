@@ -90,6 +90,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     Toolbar toolbar;
     Boolean isplaying = false;
     //
+
      ApplicationController con;
     String path;
     View shadow;
@@ -731,9 +732,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         Log.i("klkl", String.valueOf(con.isnull()) +"  "+String.valueOf(con.isPlaying()));
 
          if (!con.isnull() && con.getsong()!=null){
-             slider.setPanelHeight(100);
-
-            slider.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
+             int ii=this.getResources().getInteger(R.integer.panelheight);
+             slider.setPanelHeight(ii);
+             slider.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
 
 /*
             card.setVisibility(View.VISIBLE);
