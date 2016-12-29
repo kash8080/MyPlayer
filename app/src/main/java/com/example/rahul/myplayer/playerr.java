@@ -34,6 +34,7 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
     songs current_song;
     Long setmax=0L;
     public boolean isrepeat,isshuffle;
+    String Current_time;
     public int viewupdater=0;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -155,11 +156,12 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
         try {
             isplaying=con.isPlaying();
             Long timemilli=con.getDuration();
-
+            int currtm=Integer.parseInt(String.valueOf(con.getcurrentplaybacktime()/1000L));
             int timesec=Integer.parseInt(String.valueOf(timemilli/1000L));
             Log.i("kkkk","total time of current song is :"+timesec/60+":"+timesec%60);
             total.setText(gettime(timesec));
-            current.setText("0:00");
+            Current_time=gettime(currtm);
+            current.setText(Current_time);
             Log.i("lllll","setdata");
             getSupportActionBar().setTitle(current_song.getName());
             getSupportActionBar().setSubtitle(current_song.getArtist());
@@ -167,12 +169,13 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
 
             if(bitmap!=null){image.setImageBitmap(bitmap);}
             else {image.setImageResource(R.drawable.mp3full);}
-            Log.i("mmmm","setdata: getDuration setmax"+(String.valueOf(Integer.parseInt(String.valueOf(timemilli/1000L)))));
+            //Log.i("mmmm","setdata: getDuration setmax"+(String.valueOf(Integer.parseInt(String.valueOf(timemilli/1000L)))));
             setmax=timemilli;
             seekBar.setMax(Integer.parseInt(String.valueOf(timemilli /1000L )));
             //seekBar.setMax(con.getDuration());
-            Log.i("lllll","----"+String.valueOf(timemilli));
+            //Log.i("lllll","----"+String.valueOf(timemilli));
             seticon();
+            seekBar.setProgress((currtm));
 
         }catch (Exception e){}
     }
@@ -342,9 +345,9 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
             }
             Log.i("mmmm","background: getDuration setmax"+String.valueOf(dur));
 
-            String crnt=gettime(Integer.parseInt(String.valueOf(con.getcurrentplaybacktime()/1000L)));
-            Log.i("kkkk","current string:"+crnt);
-            current.setText(crnt);
+            Current_time=gettime(Integer.parseInt(String.valueOf(con.getcurrentplaybacktime()/1000L)));
+            Log.i("kkkk","current string:"+Current_time);
+            current.setText(Current_time);
            // Log.i("kkkk","getcurrentplaybacktime:"+String.valueOf(con.getcurrentplaybacktime()/1000L));
            seekBar.setProgress(Integer.parseInt(String.valueOf(con.getcurrentplaybacktime()/1000L)));
             Log.i("kkkk","updateseekbar");

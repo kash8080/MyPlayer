@@ -50,7 +50,7 @@ public class Now_playing extends AppCompatActivity implements ApplicationControl
         adapter=new recycler_adapter(this,now_list,"now_playing");Log.i("lllll","--");
         recview.setAdapter(adapter);Log.i("lllll","--");
 
-        ItemTouchHelper.Callback _ithCallback=new ItemTouchHelper.Callback(){
+        ItemTouchHelper.SimpleCallback _ithCallback=new ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP | ItemTouchHelper.DOWN,ItemTouchHelper.LEFT ){
             //and in your imlpementaion of
             public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
                 // get the viewHolder's and target's positions in your adapter data, swap them
@@ -60,12 +60,12 @@ public class Now_playing extends AppCompatActivity implements ApplicationControl
 
                 con.notifydatachange(0,from,to);
                 if(from<current && to>=current){
-                  // current move up
+                    // current move up
                     current--;
                     con.setCurrent_pos(current);
                 }
                 else if(from>current && to<=current) {
-                 //  current  move down
+                    //  current  move down
                     current++;
                     con.setCurrent_pos(current);
 
@@ -75,10 +75,7 @@ public class Now_playing extends AppCompatActivity implements ApplicationControl
                     con.setCurrent_pos(current);
 
                 }
-
-               // Collections.swap(now_list, viewHolder.getAdapterPosition(), target.getAdapterPosition());
-                // and notify the adapter that its dataset has changed
-                adapter.notifyItemMoved(viewHolder.getAdapterPosition(), target.getAdapterPosition());
+            adapter.notifyItemMoved(viewHolder.getAdapterPosition(), target.getAdapterPosition());
 
 
                 return true;
@@ -86,22 +83,13 @@ public class Now_playing extends AppCompatActivity implements ApplicationControl
 
             @Override
             public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
-                Log.i("wewe","onswipe: "+String.valueOf(direction));
-                now_list.remove(viewHolder.getAdapterPosition());
-                adapter.notifyItemRemoved(viewHolder.getAdapterPosition());
-                //TODO
-            }
-
-            //defines the enabled move directions in each state (idle, swiping, dragging).
-            @Override
-            public int getMovementFlags(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
-                return makeFlag(ItemTouchHelper.ACTION_STATE_DRAG,
-                        ItemTouchHelper.DOWN | ItemTouchHelper.UP | ItemTouchHelper.START | ItemTouchHelper.END);
+                int i=viewHolder.getAdapterPosition();
+               if(direction==4) {
+                   adapter.notifyItemRemoved(i);
+                   con.remove_song(i);
+               }
             }
         };
-
-
-
 
 
 

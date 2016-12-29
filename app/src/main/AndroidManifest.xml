@@ -18,13 +18,9 @@
         android:theme="@style/AppTheme">
         <activity
             android:name=".MainActivity"
-            android:label="@string/app_name"
-            android:theme="@style/AppTheme.NoActionBar">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
 
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
+            android:theme="@style/AppTheme.NoActionBar">
+
         </activity>
         <activity
             android:name=".open_playlist"
@@ -46,8 +42,8 @@
             android:name="com.facebook.FacebookActivity"
             android:configChanges="keyboard|keyboardHidden|screenLayout|screenSize|orientation"
             android:label="@string/app_name"
-            tools:replace="android:theme"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            tools:replace="android:theme" />
 
         <meta-data
             android:name="com.facebook.sdk.ApplicationId"
@@ -68,10 +64,20 @@
             </intent-filter>
         </service>
 
-        <activity android:name=".settings"
-            android:theme="@style/AppTheme.NoActionBar"
+        <activity
+            android:name=".settings"
+            android:theme="@style/AppTheme.NoActionBar"></activity>
+        <activity android:name=".PermissionActivity"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.rahul.permission" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
 
-        >
         </activity>
     </application>
 

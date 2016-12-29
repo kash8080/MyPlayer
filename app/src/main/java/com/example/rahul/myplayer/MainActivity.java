@@ -2,7 +2,7 @@ package com.example.rahul.myplayer;
 
 import android.app.AlertDialog;
 
-
+import android.Manifest;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.ContentValues;
@@ -10,6 +10,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -22,6 +23,7 @@ import android.preference.PreferenceManager;
 import android.provider.MediaStore;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.TabLayout;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentTransaction;
 
@@ -74,41 +76,39 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         ViewPager.OnPageChangeListener,View.OnClickListener,recycler_adapter.adaptr,
         ApplicationController.informactivity,SeekBar.OnSeekBarChangeListener {
 
-    AudioManager audioManager;
+    private final int read_external=11001;
+    int menuid = 0;
+    Boolean isplaying = false;
+
+    //ui elements
     ActionBarDrawerToggle toggle;
     DrawerLayout drawer;
-    FragmentTransaction transaction;
     NavigationView navigationView;
-    int menuid = 0;
     TextView songname;
     TextView artistname;
-    ImageView image;
     ImageButton button;
     pageradapter adapter;
     TabLayout tablayout;
     ViewPager viewpager;
     Toolbar toolbar;
-    Boolean isplaying = false;
-    //
-
-     ApplicationController con;
-    String path;
-    View shadow;
     Toolbar card;
     AlertDialog.Builder builder;
-    Uri profileuri;
-    Bitmap bitmap;
     TextView nav_name;
-    SharedPreferences sharedPref;
 
+    String path;
+    Bitmap bitmap;
+    SharedPreferences sharedPref;
+    ApplicationController con;
 
     //slidinglayout
     SlidingUpPanelLayout slider;
     ImageButton previous,next,play_pause,repeat,shuffle;
     TextView current,total;
     SeekBar seekBar;
-   // Bitmap bitmapslide;
-    ImageView imageslide;
+    String Current_time;
+
+    // Bitmap bitmapslide;
+    ImageView imageslide,image;
     updateseekbar1 seekbarasync;
     songs current_song;
     Long setmax=0L;
@@ -125,114 +125,57 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     ProfileTracker profileTracker;
 
 
+    ///------ --------- -------------  -------------   -------------
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        Log.i("klkl", "oncreate");
+        Log.i("llllp", "oncreate");
         super.onCreate(savedInstanceState);
+        //overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
         setContentView(R.layout.activity_main);
-         toolbar = (Toolbar) findViewById(R.id.toolbar);
 
+        //initialise everything
+        initialise();
         setSupportActionBar(toolbar);
-
-        songname = (TextView) findViewById(R.id.bar_name);
-        artistname = (TextView) findViewById(R.id.bar_artist);
-        image = (ImageView) findViewById(R.id.bar_image);
-        button = (ImageButton) findViewById(R.id.bar_button);
-        viewpager = (ViewPager) findViewById(R.id.pager);
         con = new ApplicationController(this.getApplicationContext(), this);
-        card = (Toolbar) findViewById(R.id.controller_bar);
 
-        //sliding player setup
-        slider=(SlidingUpPanelLayout)findViewById(R.id.sliding_layout);
-        previous=(ImageButton)findViewById(R.id.previous);
-        next=(ImageButton)findViewById(R.id.next);
-        play_pause=(ImageButton)findViewById(R.id.play_pause);
-        repeat=(ImageButton)findViewById(R.id.repeat);
-        shuffle=(ImageButton)findViewById(R.id.shuffle);
-        current=(TextView) findViewById(R.id.current_time);
-        total=(TextView) findViewById(R.id.total_time);
-        seekBar=(SeekBar)findViewById(R.id.seekbar);
-        imageslide=(ImageView)findViewById(R.id.player_image);
+        //to check if user revoke permissions while app running .
+        if(con.needforpermissions(Manifest.permission.READ_EXTERNAL_STORAGE)){
+            request_perm();
+            //startActivity(new Intent(this,PermissionActivity.class));
+        }else{
+            con.loadsongswithimages();
+        }
 
+        //settings
         sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
         String sync = String.valueOf(sharedPref.getBoolean("check", false));
 
-        Log.i("sttng",sync);
-
-        play_pause.setOnClickListener(this);
-        previous.setOnClickListener(this);
-        next.setOnClickListener(this);
-        repeat.setOnClickListener(this);
-        shuffle.setOnClickListener(this);
-        seekBar.setOnSeekBarChangeListener(this);
-        imageslide.setScaleType(ImageView.ScaleType.CENTER_CROP);
-
         setrepeatbutton();
         setshufflebutton();
-
         isrepeat=con.isRepeat();
         isshuffle=con.isShuffle();
 
-
         set_card_visibility();
-        card.setOnClickListener(this);
 
-        // sliding layout setup end
+        imageLoader = ImageLoader.getInstance();
 
-
-
-        button.setOnClickListener(this);
-        builder = new AlertDialog.Builder(this);
-         imageLoader = ImageLoader.getInstance();
-
-
-        //card.setVisibility(View.INVISIBLE);
-        //shadow.setVisibility(View.INVISIBLE);
-
-
-       // askaudio();
         card.setContentInsetsAbsolute(0, 0);
-        ////////// //navigation view setup
-        drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        toggle = new ActionBarDrawerToggle(
-                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close) {
-            @Override
-            public void onDrawerOpened(View drawerView) {
-                super.onDrawerOpened(drawerView);
-            }
 
-            @Override
-            public void onDrawerClosed(View drawerView) {
-                super.onDrawerClosed(drawerView);
-            }
-        };
-        drawer.addDrawerListener(toggle);
-        navigationView = (NavigationView) findViewById(R.id.nav_view);
-        navigationView.setNavigationItemSelectedListener(this);
+        nav_tab_setup();
 
-//tabs setup/////////////
-        adapter = new pageradapter(getSupportFragmentManager());
-        viewpager.setAdapter(adapter);
-        tablayout = (TabLayout) findViewById(R.id.tablayout);
-        tablayout.addTab(tablayout.newTab().setText("first"));
-        tablayout.addTab(tablayout.newTab().setText("second"));
-        tablayout.addTab(tablayout.newTab().setText("third"));
-        tablayout.setTabGravity(tablayout.GRAVITY_FILL);
-        viewpager.addOnPageChangeListener(this);
-        //tablayout.setOnTabSelectedListener(this);
-        tablayout.setupWithViewPager(viewpager);
-
-//remove extra margin left space
-
-//-------------------can use shared preference here----------
-
+        //navigation header
         View v=navigationView.getHeaderView(0);
         profileimage=(de.hdodenhof.circleimageview.CircleImageView)v.findViewById(R.id.profile_image);
         nav_name=(TextView)v.findViewById(R.id.nav_name) ;
 
-
         //for facebook
+        fb_setup();
+
+        Log.i("llllp","on create end");
+    }
+
+    private void fb_setup(){
         token=AccessToken.getCurrentAccessToken();
         profile=Profile.getCurrentProfile();
 
@@ -249,9 +192,72 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             con.setloginvalue(true);
         }else con.setloginvalue(false);
 
+    }
+    private void nav_tab_setup(){
+        ////////// //navigation view setup
+        toggle = new ActionBarDrawerToggle(
+                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close) {
+            @Override
+            public void onDrawerOpened(View drawerView) {
+                super.onDrawerOpened(drawerView);
+            }
+
+            @Override
+            public void onDrawerClosed(View drawerView) {
+                super.onDrawerClosed(drawerView);
+            }
+        };
+        drawer.addDrawerListener(toggle);
+        navigationView.setNavigationItemSelectedListener(this);
+
+        //tabs setup/////////////
+        tablayout.addTab(tablayout.newTab().setText("first"));
+        tablayout.addTab(tablayout.newTab().setText("second"));
+        tablayout.addTab(tablayout.newTab().setText("third"));
+        tablayout.setTabGravity(tablayout.GRAVITY_FILL);
+        //tablayout.setOnTabSelectedListener(this);
+        adapter = new pageradapter(getSupportFragmentManager());
+        viewpager.setAdapter(adapter);
+        viewpager.addOnPageChangeListener(this);
+        tablayout.setupWithViewPager(viewpager);
 
     }
+    private void initialise(){
+        songname = (TextView) findViewById(R.id.bar_name);
+        artistname = (TextView) findViewById(R.id.bar_artist);
+        button = (ImageButton) findViewById(R.id.bar_button);
+        viewpager = (ViewPager) findViewById(R.id.pager);
+        drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        card = (Toolbar) findViewById(R.id.controller_bar);
+        navigationView = (NavigationView) findViewById(R.id.nav_view);
+        tablayout = (TabLayout) findViewById(R.id.tablayout);
+        builder = new AlertDialog.Builder(this);
+        toolbar = (Toolbar) findViewById(R.id.toolbar);
 
+        //sliding player setup
+        image = (ImageView) findViewById(R.id.bar_image);
+        slider=(SlidingUpPanelLayout)findViewById(R.id.sliding_layout);
+        previous=(ImageButton)findViewById(R.id.previous);
+        next=(ImageButton)findViewById(R.id.next);
+        play_pause=(ImageButton)findViewById(R.id.play_pause);
+        repeat=(ImageButton)findViewById(R.id.repeat);
+        shuffle=(ImageButton)findViewById(R.id.shuffle);
+        current=(TextView) findViewById(R.id.current_time);
+        total=(TextView) findViewById(R.id.total_time);
+        seekBar=(SeekBar)findViewById(R.id.seekbar);
+        imageslide=(ImageView)findViewById(R.id.player_image);
+
+        play_pause.setOnClickListener(this);
+        previous.setOnClickListener(this);
+        next.setOnClickListener(this);
+        repeat.setOnClickListener(this);
+        shuffle.setOnClickListener(this);
+        seekBar.setOnSeekBarChangeListener(this);
+        imageslide.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        card.setOnClickListener(this);
+        button.setOnClickListener(this);
+
+    }
 
     @Override
     public void onBackPressed() {
@@ -279,19 +285,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
         if (id == R.id.add_new_playlist) {
             builder.setTitle("Playlist name");
             builder.setCancelable(true);
-            // Set up the input
-            //final EditText input = new EditText(this);
 
-            // Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
             View v = getLayoutInflater().inflate(R.layout.dialog, null);
             final EditText input = (EditText) v.findViewById(R.id.newplaylistname);
 
@@ -324,35 +323,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             return true;
         }
 
-
-/*
-
-            NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this)
-                    .setSmallIcon(R.drawable.noti)
-                    .setContentTitle("My notification")
-                    .setContentText("Hello World!");
-
-            Intent resultIntent = new Intent(this, player_n.class);
-            TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
-            stackBuilder.addParentStack(player_n.class);
-            resultIntent.setFlags(Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
-
-            stackBuilder.addNextIntent(resultIntent);
-            PendingIntent resultPendingIntent =
-                    stackBuilder.getPendingIntent(
-                            0,
-                            PendingIntent.FLAG_UPDATE_CURRENT
-                    );
-            mBuilder.setContentIntent(resultPendingIntent);
-            NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-// 0 allows you to update the notification later on.
-            mNotificationManager.notify(0, mBuilder.build());
-
-*/
-
-
-
         return false;
+    }
+
+    public void createnewplaylist(String playlistname) {
+        ContentValues mInserts = new ContentValues();
+        mInserts.put(MediaStore.Audio.Playlists.NAME, playlistname);
+        mInserts.put(MediaStore.Audio.Playlists.DATE_ADDED, System.currentTimeMillis());
+        mInserts.put(MediaStore.Audio.Playlists.DATE_MODIFIED, System.currentTimeMillis());
+        this.getContentResolver().insert(MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI, mInserts);
     }
 
     @SuppressWarnings("StatementWithEmptyBody")
@@ -412,6 +391,369 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     }
 
+    public void setbutton(boolean a) {
+        isplaying = a;
+        if (a) {
+            button.setImageResource(R.drawable.pause);
+        } else {
+            button.setImageResource(R.drawable.play);
+        }
+    }
+
+    public void setcard(boolean a, songs song) {
+        setbutton(a);
+        path = song.getImagepath();
+        if (song != null) {
+            Log.i("klkl", "song!=null..setting card");
+            try {
+                String name = song.getName();
+                String artist = song.getArtist();
+                songname.setText(name);
+                artistname.setText(artist);
+                Bitmap bitmap = BitmapFactory.decodeFile(song.getImagepath());
+                if (bitmap != null) {
+                    image.setImageBitmap(bitmap);
+                    imageslide.setImageBitmap(bitmap);
+                } else {
+                    image.setImageResource(R.drawable.mp3);
+                    imageslide.setImageResource(R.drawable.mp3);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            image.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            imageslide.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        }
+    }
+
+    public void seticon(){
+        if(isplaying){
+            Log.i("llll","isplaying");
+            play_pause.setImageResource(R.drawable.pause_white);
+
+        }else play_pause.setImageResource(R.drawable.play_white);
+
+    }
+    public void refreshview(){
+
+        Log.i("lllll","refresh");
+        current_song=con.getsong();
+        setdata();
+    }
+    public void setdata(){
+        try {
+            isplaying=con.isPlaying();
+            Long timemilli=con.getDuration();
+
+            int timesec=Integer.parseInt(String.valueOf(timemilli/1000L));
+            Log.i("kkkk","total time of current song is :"+timesec/60+":"+timesec%60);
+            total.setText(gettime(timesec));
+            Current_time=gettime(Integer.parseInt(String.valueOf(con.getcurrentplaybacktime()/1000L)));
+
+            current.setText(Current_time);
+            Log.i("lllll","setdata");
+            bitmap= BitmapFactory.decodeFile(current_song.getImagepath());
+
+            if(bitmap!=null){image.setImageBitmap(bitmap);}
+            else {image.setImageResource(R.drawable.mp3full);}
+            Log.i("mmmm","setdata: getDuration setmax"+(String.valueOf(Integer.parseInt(String.valueOf(timemilli/1000L)))));
+            setmax=timemilli;
+            seekBar.setMax(Integer.parseInt(String.valueOf(timemilli /1000L )));
+            //seekBar.setMax(con.getDuration());
+            Log.i("lllll","----"+String.valueOf(timemilli));
+            seticon();
+
+        }catch (Exception e){}
+    }
+    public String gettime(int secs){
+        int min=secs/60;
+        int sec=secs%60;
+        String time;
+        if(sec<10){
+            time=String.valueOf(min)+":0"+String.valueOf(sec);
+
+        }else{
+            time=String.valueOf(min)+":"+String.valueOf(sec);
+
+        }
+        return time;
+
+    }
+
+    @Override
+    public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+        Log.i("lllll","progress changed :");
+        // Log.i("kkkk","on progress changed:"+String.valueOf(progress)+" -- "+!con.isnull() +fromUser);
+        Log.i("mmmm","onprogresschamged -"+String.valueOf(progress));
+
+        if(!con.isnull() && fromUser){
+            // con.seekTo(progress);
+            Log.i("kkkk","on progress changed:"+String.valueOf(progress));
+            con.seekTo(Long.parseLong(String.valueOf(progress*1000)));
+        }
+
+    }
+    @Override
+    public void onStartTrackingTouch(SeekBar seekBar) {
+
+    }
+
+    public void setrepeatbutton(){
+        if(isrepeat){
+            repeat.setImageResource(R.drawable.repeat_selected);
+        }else      repeat.setImageResource(R.drawable.repeat);
+    }
+    public void setshufflebutton(){
+        if(isshuffle){
+            shuffle.setImageResource(R.drawable.shuffle_selected);
+        }else      shuffle.setImageResource(R.drawable.shuffle);
+    }
+
+    @Override
+    public void onStopTrackingTouch(SeekBar seekBar) {
+
+    }
+
+    @Override
+    public void setcardss(songs song) {
+
+        set_card_visibility();
+        Log.i("llll", "setcardss");
+        setcard(true, song);
+    }
+
+    public void set_card_visibility(){
+        Log.i("klkl", String.valueOf(con.isnull()) +"  "+String.valueOf(con.isPlaying()));
+
+         if (!con.isnull() && con.getsong()!=null){
+             int ii=this.getResources().getInteger(R.integer.panelheight);
+             slider.setPanelHeight(ii);
+             slider.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
+
+/*
+            card.setVisibility(View.VISIBLE);
+            shadow.setVisibility(View.VISIBLE);
+            */
+        }else{
+            slider.setPanelState(SlidingUpPanelLayout.PanelState.HIDDEN);
+        }
+
+    }
+    @Override
+    public void playnextsong() {
+        isplaying = con.isPlaying();
+        setcard(isplaying, con.getsong());
+
+        //slide
+        refreshview();
+        seekBar.setProgress(0);
+    }
+
+    @Override
+    public void refresh() {
+        Log.i("bnbnn","minact refresh");
+
+        isplaying = con.isPlaying();
+        setcard(isplaying, con.getsong());
+        refreshview();
+    }
+    public void updateseekbarAsync() {
+        Long dur=con.getDuration()/1000L;
+        Log.i("mmmm","updateseekbar main .. method called");
+
+        if(!con.isnull() && con.isPlaying()){
+            Log.i("mmmm","setmax="+String.valueOf(setmax));
+
+            if(dur>0 && !(dur.equals(setmax))  ){
+                seekBar.setMax(Integer.parseInt(String.valueOf(dur)));
+                int timesec=Integer.parseInt(String.valueOf(dur));
+                total.setText(gettime(timesec));
+                setmax=dur;
+                Log.i("mmmm","seekbar setmax updated");
+                //
+
+            }
+            Log.i("mmmm","background: getDuration setmax"+String.valueOf(dur));
+            Current_time=gettime(Integer.parseInt(String.valueOf(con.getcurrentplaybacktime()/1000L)));
+            Log.i("kkkk","current string:"+Current_time);
+
+            current.setText(Current_time);
+            // Log.i("kkkk","getcurrentplaybacktime:"+String.valueOf(con.getcurrentplaybacktime()/1000L));
+            seekBar.setProgress(Integer.parseInt(String.valueOf(con.getcurrentplaybacktime()/1000L)));
+            Log.i("kkkk","updateseekbar");
+        }
+    }
+
+    public class updateseekbar1 extends AsyncTask<Void,Void,Void>{
+
+        private boolean canrun=true;
+        @Override
+        protected void onPreExecute() {
+            Log.i("kkkk","onpreexecute---------------");
+
+            super.onPreExecute();
+        }
+
+        @Override
+        protected void onCancelled() {
+            super.onCancelled();
+            canrun=false;
+        }
+
+        @Override
+        protected Void doInBackground(Void... params) {
+           // Log.i("kkkk","doinbackground11");
+            while (canrun) {
+                Log.i("kkkk"," canrun main doinbackground");
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                publishProgress();
+            }
+            return null;
+        }
+
+        @Override
+        protected void onProgressUpdate(Void... values) {
+           // Log.i("bnbn",con.isPlaying()+" "+con.getcurrentplaybacktime());
+            updateseekbarAsync();
+            super.onProgressUpdate(values);
+        }
+    }
+
+
+    //////////////////facebook login methods
+    FacebookCallback<LoginResult> fbcallback=new FacebookCallback<LoginResult>() {
+        @Override
+        public void onSuccess(LoginResult loginResult) {
+            token=loginResult.getAccessToken();
+            profile=Profile.getCurrentProfile();
+            if(profile!=null){
+               // refreshview
+                con.setloginvalue(true);
+                con.setprofilepic(String.valueOf(profile.getProfilePictureUri(100,100)));
+            }
+
+        }
+
+        @Override
+        public void onCancel() {
+
+        }
+
+        @Override
+        public void onError(FacebookException error) {
+
+        }
+    };
+
+    public void settokenandprofile(){
+        tokentracker=new AccessTokenTracker() {
+            @Override
+            protected void onCurrentAccessTokenChanged(AccessToken oldAccessToken, AccessToken currentAccessToken) {
+                Log.i("qqqq"," istracking"+String.valueOf(profileTracker.isTracking())+"access token changed");
+                if(AccessToken.getCurrentAccessToken()!=null) {
+
+                    ApplicationController.setloginvalue(true);
+                }
+                else {
+                    ApplicationController.setloginvalue(false);
+                }
+
+
+            }
+        };
+        profileTracker =new ProfileTracker() {
+            @Override
+            protected void onCurrentProfileChanged(Profile oldProfile, Profile currentProfile) {
+                Log.i("qqqq"," istracking"+String.valueOf(profileTracker.isTracking())+"current profilechanged");
+
+                profile=currentProfile.getCurrentProfile();
+                if(profile!=null){
+                    //refreshview
+                    updateprofileimage();
+                }
+            }
+        };
+
+    }
+    public boolean isFacebookLoggedIn(){
+        return AccessToken.getCurrentAccessToken() != null;
+    }
+    public void setprofileimage(){
+        Log.i("qqqq","setprofileimage ");
+        nav_name.setText(profile.getName());
+        imageLoader.displayImage(con.getProfilepic(),profileimage);
+    }
+
+    @Override
+    public void updateprofileimage() {
+        Log.i("qqqq","updateprofileimage ");
+
+        if(con.getloginvalue()){
+            setprofileimage();
+        }else{
+            nav_name.setText("");
+            profileimage.setImageResource(R.mipmap.ic_launcher);
+        }
+    }
+
+    ////////////////////////////////////////facebook login methods end
+
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        seekbarasync.cancel(true);
+        seekbarasync.canrun=false;
+        tokentracker.stopTracking();
+        profileTracker.stopTracking();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        mCallbackmanager.onActivityResult(requestCode,resultCode,data);
+    }
+
+    public void request_perm(){
+        Log.i("llllp","request perm");
+
+        ActivityCompat.requestPermissions(this,
+                new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                read_external);
+        // read_external is an
+        // app-defined int constant. The callback method gets the
+        // result of the request.
+
+    }
+    @Override
+    public void onRequestPermissionsResult ( int requestCode,
+                                             String permissions[],int[] grantResults){
+        Log.i("llllp","onresult");
+
+        switch (requestCode) {
+            case read_external: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                    con.loadsongswithimages();
+                    adapter = new pageradapter(getSupportFragmentManager());
+                    viewpager.setAdapter(adapter);
+
+
+                } else {
+                            startActivity(new Intent(this,PermissionActivity.class));
+
+                }
+
+            }
+
+        }
+    }
 
     @Override
     public void onClick(View v) {
@@ -531,78 +873,28 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     }
 
-    public void setbutton(boolean a) {
-        isplaying = a;
-        if (a) {
-            button.setImageResource(R.drawable.pause);
-        } else {
-            button.setImageResource(R.drawable.play);
-        }
-    }
-
-    public void setcard(boolean a, songs song) {
-        setbutton(a);
-        path = song.getImagepath();
-        if (song != null) {
-            Log.i("klkl", "song!=null..setting card");
-            try {
-                String name = song.getName();
-                String artist = song.getArtist();
-                songname.setText(name);
-                artistname.setText(artist);
-                Bitmap bitmap = BitmapFactory.decodeFile(song.getImagepath());
-                if (bitmap != null) {
-                    image.setImageBitmap(bitmap);
-                } else {
-                    image.setImageResource(R.drawable.mp3);
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            image.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        }
-    }
-
-    //---
-    public void createnewplaylist(String playlistname) {
-        ContentValues mInserts = new ContentValues();
-        mInserts.put(MediaStore.Audio.Playlists.NAME, playlistname);
-        mInserts.put(MediaStore.Audio.Playlists.DATE_ADDED, System.currentTimeMillis());
-        mInserts.put(MediaStore.Audio.Playlists.DATE_MODIFIED, System.currentTimeMillis());
-        this.getContentResolver().insert(MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI, mInserts);
-    }
-
-
-
-
-
     @Override
     protected void onResume() {
-
+        Log.i("llllp","onresume");
         super.onResume();
-        con = new ApplicationController(this.getApplicationContext(), this);
-
-
 
         //for facebook
         tokentracker.startTracking();
         profileTracker.startTracking();
         if(isFacebookLoggedIn()){
-        if(con.getProfilepic()==null) {
-            profile = Profile.getCurrentProfile();
-
-            if (profile != null) {
-                //refreshview
-                con.setprofilepic(String.valueOf(profile.getProfilePictureUri(100, 100)));
-                Log.i("qqqq", String.valueOf(profile.getProfilePictureUri(100, 100)));
-
+            if(con.getProfilepic()==null) {
+                profile = Profile.getCurrentProfile();
+                if (profile != null) {
+                    //refreshview
+                    con.setprofilepic(String.valueOf(profile.getProfilePictureUri(100, 100)));
+                    Log.i("qqqq", String.valueOf(profile.getProfilePictureUri(100, 100)));
+                }
             }
-          }
             setprofileimage();
         }
         //updateprofileimage();
 
-       set_card_visibility();
+        set_card_visibility();
 
 
         try {
@@ -617,333 +909,23 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 } else {
                     setcard(false, null);
                 }
-
             }
 
-        } catch (Exception e) {
-        }
-
-
+        } catch (Exception e) {}
 
 
         if(con.getCurrentPosition()==-1){
             con.setCurrent_pos(0);
-
         }
-
-        Log.i("kkkk","onresume---------------");
-       // Log.i("mmmm",String.valueOf(con.getCurrentPosition())+"---"+String.valueOf(con.getlist().size()));
 
         seekbarasync =new updateseekbar1();
         seekbarasync.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
 
-        super.onResume();
-        Log.i("llll","on resume :conisplaying"+con.isPlaying());
         isplaying=con.isPlaying();
         refreshview();
         seticon();
+        Log.i("llllp","on resume end");
     }
-
-
-    public void seticon(){
-        if(isplaying){
-            Log.i("llll","isplaying");
-            play_pause.setImageResource(R.drawable.pause_white);
-
-        }else play_pause.setImageResource(R.drawable.play_white);
-
-    }
-    public void refreshview(){
-
-        Log.i("lllll","refresh");
-        current_song=con.getsong();
-        setdata();
-    }
-    public void setdata(){
-        try {
-            isplaying=con.isPlaying();
-            Long timemilli=con.getDuration();
-
-            int timesec=Integer.parseInt(String.valueOf(timemilli/1000L));
-            Log.i("kkkk","total time of current song is :"+timesec/60+":"+timesec%60);
-            total.setText(gettime(timesec));
-            current.setText("0:00");
-            Log.i("lllll","setdata");
-            bitmap= BitmapFactory.decodeFile(current_song.getImagepath());
-
-            if(bitmap!=null){image.setImageBitmap(bitmap);}
-            else {image.setImageResource(R.drawable.mp3full);}
-            Log.i("mmmm","setdata: getDuration setmax"+(String.valueOf(Integer.parseInt(String.valueOf(timemilli/1000L)))));
-            setmax=timemilli;
-            seekBar.setMax(Integer.parseInt(String.valueOf(timemilli /1000L )));
-            //seekBar.setMax(con.getDuration());
-            Log.i("lllll","----"+String.valueOf(timemilli));
-            seticon();
-
-        }catch (Exception e){}
-    }
-    public String gettime(int secs){
-        int min=secs/60;
-        int sec=secs%60;
-        String time;
-        if(sec<10){
-            time=String.valueOf(min)+":0"+String.valueOf(sec);
-
-        }else{
-            time=String.valueOf(min)+":"+String.valueOf(sec);
-
-        }
-        return time;
-
-    }
-    @Override
-    public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-        Log.i("lllll","progress changed :");
-        // Log.i("kkkk","on progress changed:"+String.valueOf(progress)+" -- "+!con.isnull() +fromUser);
-        Log.i("mmmm","onprogresschamged -"+String.valueOf(progress));
-
-        if(!con.isnull() && fromUser){
-            // con.seekTo(progress);
-            Log.i("kkkk","on progress changed:"+String.valueOf(progress));
-            con.seekTo(Long.parseLong(String.valueOf(progress*1000)));
-        }
-
-    }
-    @Override
-    public void onStartTrackingTouch(SeekBar seekBar) {
-
-    }
-
-    @Override
-    public void onStopTrackingTouch(SeekBar seekBar) {
-
-    }
-
-
-    @Override
-    public void setcardss(songs song) {
-
-        set_card_visibility();
-        Log.i("llll", "setcardss");
-        setcard(true, song);
-    }
-
-    public void set_card_visibility(){
-        Log.i("klkl", String.valueOf(con.isnull()) +"  "+String.valueOf(con.isPlaying()));
-
-         if (!con.isnull() && con.getsong()!=null){
-             int ii=this.getResources().getInteger(R.integer.panelheight);
-             slider.setPanelHeight(ii);
-             slider.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
-
-/*
-            card.setVisibility(View.VISIBLE);
-            shadow.setVisibility(View.VISIBLE);
-            */
-        }else{
-            slider.setPanelState(SlidingUpPanelLayout.PanelState.HIDDEN);
-        }
-
-    }
-    @Override
-    public void playnextsong() {
-        isplaying = con.isPlaying();
-        setcard(isplaying, con.getsong());
-
-        //slide
-        refreshview();
-        seekBar.setProgress(0);
-    }
-
-    @Override
-    public void refresh() {
-        Log.i("bnbnn","minact refresh");
-
-        isplaying = con.isPlaying();
-        setcard(isplaying, con.getsong());
-        refreshview();
-    }
-
-    public void updateseekbarAsync() {
-        Long dur=con.getDuration()/1000L;
-        Log.i("mmmm","updateseekbar main .. method called");
-
-        if(!con.isnull() && con.isPlaying()){
-            Log.i("mmmm","setmax="+String.valueOf(setmax));
-
-            if(dur>0 && !(dur.equals(setmax))  ){
-                seekBar.setMax(Integer.parseInt(String.valueOf(dur)));
-                int timesec=Integer.parseInt(String.valueOf(dur));
-                total.setText(gettime(timesec));
-                setmax=dur;
-                Log.i("mmmm","seekbar setmax updated");
-            }
-            Log.i("mmmm","background: getDuration setmax"+String.valueOf(dur));
-
-            String crnt=gettime(Integer.parseInt(String.valueOf(con.getcurrentplaybacktime()/1000L)));
-            Log.i("kkkk","current string:"+crnt);
-            current.setText(crnt);
-            // Log.i("kkkk","getcurrentplaybacktime:"+String.valueOf(con.getcurrentplaybacktime()/1000L));
-            seekBar.setProgress(Integer.parseInt(String.valueOf(con.getcurrentplaybacktime()/1000L)));
-            Log.i("kkkk","updateseekbar");
-        }
-    }
-
-
-    public class updateseekbar1 extends AsyncTask<Void,Void,Void>{
-
-        private boolean canrun=true;
-        @Override
-        protected void onPreExecute() {
-            Log.i("kkkk","onpreexecute---------------");
-
-            super.onPreExecute();
-        }
-
-        @Override
-        protected void onCancelled() {
-            super.onCancelled();
-            canrun=false;
-        }
-
-        @Override
-        protected Void doInBackground(Void... params) {
-           // Log.i("kkkk","doinbackground11");
-            while (canrun) {
-                Log.i("kkkk"," canrun main doinbackground");
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                publishProgress();
-            }
-            return null;
-        }
-
-        @Override
-        protected void onProgressUpdate(Void... values) {
-           // Log.i("bnbn",con.isPlaying()+" "+con.getcurrentplaybacktime());
-            updateseekbarAsync();
-            super.onProgressUpdate(values);
-        }
-    }
-
-    public void setrepeatbutton(){
-        if(isrepeat){
-            repeat.setImageResource(R.drawable.repeat_selected);
-        }else      repeat.setImageResource(R.drawable.repeat);
-    }
-    public void setshufflebutton(){
-        if(isshuffle){
-            shuffle.setImageResource(R.drawable.shuffle_selected);
-        }else      shuffle.setImageResource(R.drawable.shuffle);
-    }
-
-
-
-
-
-    //////////////////facebook login methods
-    FacebookCallback<LoginResult> fbcallback=new FacebookCallback<LoginResult>() {
-        @Override
-        public void onSuccess(LoginResult loginResult) {
-            token=loginResult.getAccessToken();
-            profile=Profile.getCurrentProfile();
-            if(profile!=null){
-               // refreshview
-                con.setloginvalue(true);
-                con.setprofilepic(String.valueOf(profile.getProfilePictureUri(100,100)));
-            }
-
-        }
-
-        @Override
-        public void onCancel() {
-
-        }
-
-        @Override
-        public void onError(FacebookException error) {
-
-        }
-    };
-
-    public void settokenandprofile(){
-        tokentracker=new AccessTokenTracker() {
-            @Override
-            protected void onCurrentAccessTokenChanged(AccessToken oldAccessToken, AccessToken currentAccessToken) {
-                Log.i("qqqq"," istracking"+String.valueOf(profileTracker.isTracking())+"access token changed");
-                if(AccessToken.getCurrentAccessToken()!=null) {
-
-                    ApplicationController.setloginvalue(true);
-                }
-                else {
-                    ApplicationController.setloginvalue(false);
-                }
-
-
-            }
-        };
-        profileTracker =new ProfileTracker() {
-            @Override
-            protected void onCurrentProfileChanged(Profile oldProfile, Profile currentProfile) {
-                Log.i("qqqq"," istracking"+String.valueOf(profileTracker.isTracking())+"current profilechanged");
-
-                profile=currentProfile.getCurrentProfile();
-                if(profile!=null){
-                    //refreshview
-                    updateprofileimage();
-                }
-            }
-        };
-
-    }
-    public boolean isFacebookLoggedIn(){
-        return AccessToken.getCurrentAccessToken() != null;
-    }
-    public void setprofileimage(){
-        Log.i("qqqq","setprofileimage ");
-        nav_name.setText(profile.getName());
-        imageLoader.displayImage(con.getProfilepic(),profileimage);
-    }
-
-    @Override
-    public void updateprofileimage() {
-        Log.i("qqqq","updateprofileimage ");
-
-        if(con.getloginvalue()){
-            setprofileimage();
-        }else{
-            nav_name.setText("");
-            profileimage.setImageResource(R.mipmap.ic_launcher);
-        }
-    }
-
-    ////////////////////////////////////////facebook login methods end
-
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        seekbarasync.cancel(true);
-        seekbarasync.canrun=false;
-        tokentracker.stopTracking();
-        profileTracker.stopTracking();
-    }
-
-    @Override
-    protected void onDestroy() {
-
-        super.onDestroy();
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        mCallbackmanager.onActivityResult(requestCode,resultCode,data);
-    }
-
 
 
 

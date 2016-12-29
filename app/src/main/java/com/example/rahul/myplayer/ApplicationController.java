@@ -1,26 +1,23 @@
 package com.example.rahul.myplayer;
 
 import android.app.Application;
-import android.content.BroadcastReceiver;
+import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.ContentResolver;
-import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
 import android.database.Cursor;
-import android.media.AudioManager;
-import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
-import android.os.PowerManager;
 import android.provider.MediaStore;
+import android.support.v4.content.ContextCompat;
 import android.util.Base64;
 import android.util.Log;
 
@@ -52,12 +49,11 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
-
+import android.Manifest;
 /**
  * Created by Rahul on 16-07-2016.
  */
 public class ApplicationController extends Application {
-
     public static Intent playIntent = null;
     public static Context applicationcontext;
     public static Context activitycontext;
@@ -70,26 +66,133 @@ public class ApplicationController extends Application {
     public static informactivity inform;
     private static playerservice musicSrv;
     public static ArrayList<songs> allsonglist ;
-
     private static ContentResolver resolver;
     background loadimagesforallsongs;
 
+    ////////------------------------------------------
+
+
+
+    public ApplicationController() {
+
+    }
+    public ApplicationController(Context applicationcontext, Context Activitycontext) {
+        this.applicationcontext = applicationcontext;
+        this.activitycontext = Activitycontext;
+        inform = (informactivity) Activitycontext;
+
+        if (musicSrv != null) {
+            musicSrv.setcontext(applicationcontext);
+        }
+    }
+
     @Override
     public void onCreate() {
+        Log.i("llllp","con oncrete");
 
-        Log.i("KeyHash1", "oncrreate");
-        super.onCreate();
-        Log.i("KeyHash1", "oncrreate");
+       super.onCreate();
         FacebookSdk.sdkInitialize(getApplicationContext());
-        Log.i("KeyHash1", "oncrreate");
         AppEventsLogger.activateApp(this);
-        Log.i("KeyHash1", "oncrreate");
 
         allsonglist=new ArrayList<>();
         resolver=this.getContentResolver();
-        getallsonglist();
-         loadimagesforallsongs =new background();
-        loadimagesforallsongs.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+
+        //music service setup start
+        if(playIntent==null){
+            playIntent = new Intent(this, playerservice.class);
+            bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE);
+            startService(playIntent);
+        }
+        //music service setup end
+
+        universl_image_loader();
+        // printhashkey();
+        Log.i("llllp","con on create end");
+
+    }
+
+    // when user kills the task with swiping from recent tasks
+    @Override
+    public void onTerminate() {
+        Log.i("llllp","con onterminate");
+
+        super.onTerminate();
+
+        loadimagesforallsongs.cancel(true);
+
+        if(playIntent!=null) {
+            try{
+                stopService(playIntent);
+            }catch (Exception e){}
+        }
+    }
+
+    ///for connectiong to the service
+    private ServiceConnection musicConnection = new ServiceConnection(){
+
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            playerservice.MusicBinder binder = (playerservice.MusicBinder)service;
+            //get service
+            musicSrv = binder.getService();
+            //pass list
+            //musicSrv.setMylist(mylist);
+
+            if(activitycontext!=null){
+                musicSrv.setcontext(activitycontext);
+            }
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+        }
+    };
+
+    public void loadsongswithimages(){
+        Log.i("llllp","load with images");
+
+        if(needforpermissions(Manifest.permission.READ_EXTERNAL_STORAGE)){
+            startpermissionactivity();
+
+        }else {
+            fetchallsonglist();
+            loadimagesforallsongs = new background();
+            loadimagesforallsongs.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        }
+    }
+    public boolean needforpermissions(String permission){
+
+        if(Build.VERSION.SDK_INT>Build.VERSION_CODES.LOLLIPOP_MR1){
+            Log.i("llllp","sdk1");
+
+            if(ContextCompat.checkSelfPermission(activitycontext,permission)!=PackageManager.PERMISSION_GRANTED){
+                Log.i("llllp","sdk2");
+
+                return true;
+            }
+        }
+        return false;
+    }
+    public void startpermissionactivity(){
+        Log.i("llllp","start activity");
+
+        Intent permissionactivity = new Intent("com.rahul.permission");//this has to match your intent filter
+        permissionactivity.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        PendingIntent pendingIntent = PendingIntent.getActivity(activitycontext, 22, permissionactivity, 0);
+        try {
+            pendingIntent.send();
+        }
+        catch (PendingIntent.CanceledException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+
+        Log.i("llllp","start activity end");
+
+    }
+
+    private void universl_image_loader(){
 
 // UNIVERSAL IMAGE LOADER SETUP
         DisplayImageOptions options = new DisplayImageOptions.Builder()
@@ -113,18 +216,6 @@ public class ApplicationController extends Application {
         ImageLoader.getInstance().init(config);
         // END - UNIVERSAL IMAGE LOADER SETUP
 
-        //music service setup start
-        if(playIntent==null){
-            playIntent = new Intent(this, playerservice.class);
-            bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE);
-            startService(playIntent);
-        }
-
-        //music service setup end
-
-
-
-        // printhashkey();
     }
     public static void setloginvalue(boolean value) {
         Log.i("qqqq", " application controller  " + "setloginvalue" + value);
@@ -132,20 +223,15 @@ public class ApplicationController extends Application {
         loginvalue = value;
         inform.updateprofileimage();
     }
-
     public static boolean getloginvalue() {
         return loginvalue;
     }
-
     public static void setprofilepic(String uri) {
         profilepic = uri;
     }
-
     public static String getProfilepic() {
         return profilepic;
     }
-
-
 
     public void printhashkey() {
         try {
@@ -187,75 +273,97 @@ public class ApplicationController extends Application {
     }
 
 
-    public ApplicationController() {
+    //to update current list of songs of current activity(playlist,album etc) .
+    public static void setMylist(ArrayList<songs> list,String from,boolean withimg) {
 
+        ApplicationController.currenntlistof=from;
+        ApplicationController.withimages=withimg;
+        musicSrv.setMylist(list);
     }
 
+    //functions for the service and activity interaction
+    public static void setplayer() {
 
-    public ApplicationController(Context applicationcontext, Context Activitycontext) {
-        this.applicationcontext = applicationcontext;
-        this.activitycontext = Activitycontext;
-        inform = (informactivity) Activitycontext;
-
-        if(musicSrv!=null){
-            musicSrv.setcontext(applicationcontext);
-        }
+        musicSrv.setplayer();
     }
+    public static int getCurrentPosition() {
 
-///for connectiong to the service
-    private ServiceConnection musicConnection = new ServiceConnection(){
-
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            playerservice.MusicBinder binder = (playerservice.MusicBinder)service;
-            //get service
-            musicSrv = binder.getService();
-            //pass list
-            //musicSrv.setMylist(mylist);
-
-            if(activitycontext!=null){
-                musicSrv.setcontext(activitycontext);
-            }
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-
-        }
-    };
-
-
-    @Override
-    public void onTerminate() {
-        super.onTerminate();
-        Log.i("uiui","app bterminnate");
-
-        loadimagesforallsongs.cancel(true);
-
-        if(playIntent!=null) {
-            try{
-            stopService(playIntent);
-            }catch (Exception e){}
-        }
+        return musicSrv.getCurrentPosition();
     }
+    public static void setCurrent_pos(int current_pos1) {
 
+        musicSrv.setCurrent_pos(current_pos1);
+    }
+    public static void pause() {
+
+        musicSrv.pause();
+    }
+    public static songs getsong() {
+
+        return musicSrv.getsong();
+    }
+    public static void resume() {
+
+        musicSrv.resume();
+    }
+    public void seekTo(Long positionms) {
+
+         musicSrv.seekTo(positionms);
+    }
+    public static Long getDuration() {
+
+        return musicSrv.getDuration();
+
+    }
+    public static void playsong(int pos) {
+
+        musicSrv.playsong(pos);
+    }
+    public static boolean isPlaying() {
+
+    return musicSrv.isPlaying();
+
+    }
+    public static void setnull() {
+
+        musicSrv.setnull();
+    }
+    public static void playnext() {
+
+        musicSrv.playnext();
+    }
+    public static void playprev() {
+
+        musicSrv.playprev();
+    }
+    public Long getcurrentplaybacktime(){
+
+        return  musicSrv.getcurrentplaybacktime();
+    }
+    public static ArrayList<songs> getlist() {
+
+        return musicSrv.getlist();
+    }
+    public static void notifydatachange(int id, int from , int to){
+
+        musicSrv.notifydatachange(id,from,to);
+    }
+    public static void remove_song(int i){
+        musicSrv.remove_song(i);
+    }
     public static boolean isnull() {
 
         return musicSrv.isnull();
     }
-
     public static boolean isRepeat() {
         return musicSrv.isRepeat();
     }
-
     public static void setRepeat(boolean repeat) {
         musicSrv.setRepeat(repeat);
     }
-
     public static boolean isShuffle() {
         return musicSrv.isShuffle();
     }
-
     public void setShuffle(boolean shuffle) {
 
         musicSrv.setShuffle(shuffle);
@@ -263,120 +371,42 @@ public class ApplicationController extends Application {
     }
 
 
-    public static void setMylist(ArrayList<songs> list,String from,boolean withimg) {
-
-        ApplicationController.currenntlistof=from;
-        ApplicationController.withimages=withimg;
-        musicSrv.setMylist(list);
-    }
-/*
-    public static void setMylist(ArrayList<songs> list) {
-
-        musicSrv.setMylist(list);
-    }
-*/
-    public static void setplayer() {
-
-        musicSrv.setplayer();
-    }
-
-    public static int getCurrentPosition() {
-
-        return musicSrv.getCurrentPosition();
-    }
-
-    public static void setCurrent_pos(int current_pos1) {
-
-        musicSrv.setCurrent_pos(current_pos1);
-    }
-
-    public static void pause() {
-
-        musicSrv.pause();
-    }
-
-    public static songs getsong() {
-
-        return musicSrv.getsong();
-    }
-
-    public static void resume() {
-
-        musicSrv.resume();
-    }
-
-    public void seekTo(Long positionms) {
-
-         musicSrv.seekTo(positionms);
-    }
-
-    public static Long getDuration() {
-
-        return musicSrv.getDuration();
-
-    }
-
-    public static void playsong(int pos) {
-
-        musicSrv.playsong(pos);
-    }
-
-    public static boolean isPlaying() {
-
-    return musicSrv.isPlaying();
-
-    }
-
-    public static void setnull() {
-
-        musicSrv.setnull();
-    }
-
-    public static void playnext() {
-
-        musicSrv.playnext();
-    }
-
-    public static void playprev() {
-
-        musicSrv.playprev();
-    }
-
-    public Long getcurrentplaybacktime(){
-
-        return  musicSrv.getcurrentplaybacktime();
-    }
-
-    public static ArrayList<songs> getlist() {
-
-        return musicSrv.getlist();
-    }
-
+    //functions for list of all songs
     public static ArrayList<songs> getAllsonglist() {
         return allsonglist;
     }
-
     public static void setAllsonglist(ArrayList<songs> allsonglist) {
         ApplicationController.allsonglist = allsonglist;
     }
-
-    public static void notifydatachange(int id, int from , int to){
-
-        musicSrv.notifydatachange(id,from,to);
+    public String getimagepathforsong(int i){
+        return allsonglist.get(i).getImagepath();
     }
 
-    public static void remove_song(int i){
-        musicSrv.remove_song(i);
-    }
 
-    public void getallsonglist(){
+    //to load all the songs
+    public void fetchallsonglist(){
+        Log.i("llllp","fetch list");
         String[] proj={android.provider.MediaStore.Audio.Media.TITLE, MediaStore.Audio.Media.ALBUM_ID,MediaStore.Audio.Media._ID,android.provider.MediaStore.Audio.Media.ARTIST};
         //using mediaplayer
 
 
 
         Uri musicUri = android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
-        Cursor musicCursor = this.getContentResolver().query(musicUri,proj, null, null, null);
+        Cursor musicCursor;
+        try {
+            Log.i("llllp","try");
+
+            musicCursor = activitycontext.getContentResolver().query(musicUri, proj, null, null, null);
+        }catch(java.lang.SecurityException e){
+            e.printStackTrace();
+            loadsongswithimages();
+            return;
+        }catch(Exception ee){
+            ee.printStackTrace();
+            loadsongswithimages();
+            return;
+        }
+        Log.i("llllp","done");
 
         if(musicCursor!=null && musicCursor.moveToFirst()){
             //get columns
@@ -411,10 +441,7 @@ public class ApplicationController extends Application {
         });
     }
 
-    public String getimagepathforsong(int i){
-        return allsonglist.get(i).getImagepath();
-    }
-
+    //to load album images of songs
     public class background extends AsyncTask<Void,Void,Void> {
 
         boolean canrun=true;

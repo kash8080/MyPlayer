@@ -9,5 +9,5 @@
 
 
     <integer name="panelheight">37</integer>
-   <integer name="columncount">2</integer>
+    <integer name="columncount">2</integer>
 </resources>

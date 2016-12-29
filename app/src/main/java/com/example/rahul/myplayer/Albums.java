@@ -37,13 +37,6 @@ public class Albums extends Fragment {
     ContentResolver res;
     int columncount=2;
 
-    @Override
-    public void onResume() {
-        Log.i("cccc","onresume albums");
-        super.onResume();
-
-    }
-
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -64,7 +57,7 @@ public class Albums extends Fragment {
         return v;
     }
 
-
+    //need to do this in background
     public void setlist(){
         Log.i(tag,"setting list");
         final Uri uri = MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI;
@@ -75,8 +68,13 @@ public class Albums extends Fragment {
         final String tracks = MediaStore.Audio.Albums.NUMBER_OF_SONGS;
 
         final String[] columns = { _id, album_name, artist, albumart, tracks };
-        Cursor cursor = res.query(uri, columns, null,
-                null,MediaStore.Audio.Albums.ALBUM);
+        Cursor cursor=null;
+       try {
+           cursor = res.query(uri, columns, null,
+                   null, MediaStore.Audio.Albums.ALBUM);
+       }catch (java.lang.SecurityException e){
+           e.printStackTrace();
+       }
         Log.i(tag,"cursor loaded");
     if(cursor!=null){Log.i(tag,"cursor!=null");
         while(cursor.moveToNext()){
