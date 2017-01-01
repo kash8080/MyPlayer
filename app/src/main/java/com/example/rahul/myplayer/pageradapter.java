@@ -5,6 +5,8 @@ import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.app.FragmentStatePagerAdapter;
 
+import java.util.ArrayList;
+
 /**
  * Created by Rahul on 14-07-2016.
  */
@@ -13,12 +15,21 @@ public class pageradapter extends FragmentStatePagerAdapter {
     public pageradapter(FragmentManager fm) {
         super(fm);
     }
+    ArrayList<Fragment> list=new ArrayList<>();
 
+    public void addFragment(Fragment f){
+        list.add(f);
+    }
+
+    public Fragment getFragment(int position){
+        return list.get(position);
+    }
     @Override
     public Fragment getItem(int position) {
-       if(position==0) return new home();
+        return list.get(position);
+       /*if(position==0) return new home();
         else if(position==1) return new Albums();
-       else return new playlist();
+       else return new playlist();*/
     }
 
     @Override

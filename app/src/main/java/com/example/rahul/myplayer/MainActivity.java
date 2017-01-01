@@ -14,6 +14,7 @@ import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -21,9 +22,11 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.provider.MediaStore;
+import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.TabLayout;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentTransaction;
 
@@ -70,6 +73,8 @@ import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.zip.Inflater;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener,
@@ -107,7 +112,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     SeekBar seekBar;
     String Current_time;
 
-    // Bitmap bitmapslide;
     ImageView imageslide,image;
     updateseekbar1 seekbarasync;
     songs current_song;
@@ -123,21 +127,33 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     AccessToken token;
     AccessTokenTracker tokentracker;
     ProfileTracker profileTracker;
-
+    CoordinatorLayout coordinatorlayout;
 
     ///------ --------- -------------  -------------   -------------
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.i("llllp", "oncreate");
-        super.onCreate(savedInstanceState);
-        //overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+        con = new ApplicationController(this.getApplicationContext(), this);
+
+        if(savedInstanceState==null){
+            super.onCreate(savedInstanceState);
+        }else{
+            if(con.needforpermissions(android.Manifest.permission.READ_EXTERNAL_STORAGE)) {
+                super.onCreate(new Bundle());
+                //activity trying to restore previous state which is null
+                // now because the system terminates the rocess while revoking perissions
+            }else{
+                super.onCreate(savedInstanceState);
+            }
+
+        }
+       //overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
         setContentView(R.layout.activity_main);
 
         //initialise everything
         initialise();
         setSupportActionBar(toolbar);
-        con = new ApplicationController(this.getApplicationContext(), this);
 
         //to check if user revoke permissions while app running .
         if(con.needforpermissions(Manifest.permission.READ_EXTERNAL_STORAGE)){
@@ -157,9 +173,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         isshuffle=con.isShuffle();
 
         set_card_visibility();
-
         imageLoader = ImageLoader.getInstance();
-
         card.setContentInsetsAbsolute(0, 0);
 
         nav_tab_setup();
@@ -217,6 +231,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         tablayout.setTabGravity(tablayout.GRAVITY_FILL);
         //tablayout.setOnTabSelectedListener(this);
         adapter = new pageradapter(getSupportFragmentManager());
+        adapter.addFragment(new home());
+        adapter.addFragment(new Albums());
+        adapter.addFragment(new playlist());
         viewpager.setAdapter(adapter);
         viewpager.addOnPageChangeListener(this);
         tablayout.setupWithViewPager(viewpager);
@@ -233,7 +250,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         tablayout = (TabLayout) findViewById(R.id.tablayout);
         builder = new AlertDialog.Builder(this);
         toolbar = (Toolbar) findViewById(R.id.toolbar);
-
+        coordinatorlayout=(CoordinatorLayout)findViewById(R.id.main_content);
         //sliding player setup
         image = (ImageView) findViewById(R.id.bar_image);
         slider=(SlidingUpPanelLayout)findViewById(R.id.sliding_layout);
@@ -259,13 +276,18 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     }
 
+    public Fragment getFragment(int position){
+        return adapter.getFragment(position);
+    }
     @Override
     public void onBackPressed() {
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         if (drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
         } else {
-            super.onBackPressed();
+
+                super.onBackPressed();
+
         }
     }
 
@@ -277,8 +299,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             Log.i("cccc", "menuid=2");
             getMenuInflater().inflate(R.menu.playlist, menu);
         } else {
-            Log.i("cccc", "menuid!=2");
-            getMenuInflater().inflate(R.menu.main, menu);
+
+                Log.i("cccc", "menuid!=2");
+                getMenuInflater().inflate(R.menu.main, menu);
+
         }
         return super.onCreateOptionsMenu(menu);
     }
@@ -382,6 +406,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     @Override
     public void onPageSelected(int position) {
+        if(position!=0){
+            if(((home)getFragment(0)).mActionMode !=null){
+                ((home)getFragment(0)).mActionMode.finish();
+            }
+
+        }
         menuid = position;
         invalidateOptionsMenu();
     }
@@ -416,7 +446,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     imageslide.setImageBitmap(bitmap);
                 } else {
                     image.setImageResource(R.drawable.mp3);
-                    imageslide.setImageResource(R.drawable.mp3);
+                    imageslide.setImageResource(R.drawable.mp3full);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -927,6 +957,33 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         Log.i("llllp","on resume end");
     }
 
+
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+    //to prevent user from opening navigation view while in action mode
+    public void lockdrawer(){
+        if(drawer!=null) {
+            drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
+            String currentDateandTime = sdf.format(new Date());
+
+            Log.i("colortiming","tablayout color change "+currentDateandTime);
+
+            //colorprimarylight
+            //tablayout.setBackgroundColor(Color.rgb(96,125,139));
+        }
+    }
+
+    //to restore navigation view after action mode
+    public void releasedrawer(){
+        if(drawer!=null) {
+            drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+            String currentDateandTime = sdf.format(new Date());
+
+            Log.i("colortiming","tablayout color restore "+currentDateandTime);
+
+            //colorprimary
+            //tablayout.setBackgroundColor(Color.rgb(69,90,100));
+        }
+    }
 
 
 }

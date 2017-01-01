@@ -1,19 +1,23 @@
 package com.example.rahul.myplayer;
 
+import android.Manifest;
+import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.support.v7.widget.helper.ItemTouchHelper;
-import android.util.Log;
+import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
-public class Now_playing extends AppCompatActivity implements ApplicationController.informactivity{
+public class Now_playing extends AppCompatActivity implements ApplicationController.informactivity, View.OnLongClickListener,View.OnClickListener{
+
+    private final int read_external=11001;
+    private boolean contextualmode=false;
 
     Toolbar toolbar;
     RecyclerView recview;
@@ -24,31 +28,44 @@ public class Now_playing extends AppCompatActivity implements ApplicationControl
     ItemTouchHelper ith;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+        con=new ApplicationController(this.getApplicationContext(),this);
+
+        if(savedInstanceState==null){
+            super.onCreate(savedInstanceState);
+        }else{
+            if(con.needforpermissions(android.Manifest.permission.READ_EXTERNAL_STORAGE)) {
+                super.onCreate(new Bundle());
+                //activity trying to restore previous state which is null
+                // now because the system terminates the rocess while revoking perissions
+                startActivity(new Intent(this, MainActivity.class));
+                //finish called to stop further proccess of this activity
+            }else{
+                super.onCreate(savedInstanceState);
+            }
+
+        }
         setContentView(R.layout.activity_now_playing);
-        Log.i("lllll","--");
 
         now_list=new ArrayList<>();
-        Log.i("lllll","--");
 
-        con=new ApplicationController(this.getApplicationContext(),this);
-        Log.i("lllll","--");
+        if(con.needforpermissions(Manifest.permission.READ_EXTERNAL_STORAGE)){
+            startActivity(new Intent(this,MainActivity.class));
+            finish();
+        }
 
         now_list=con.getlist();
-        Log.i("lllll","--");
-        Log.i("lllll","now playing..list size="+String.valueOf(now_list.size()));
+
         toolbar=(Toolbar)findViewById(R.id.now_toolbar);
         setSupportActionBar(toolbar);
         getSupportActionBar().setTitle("Now Playing");
 
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
-        Log.i("lllll","--");
         recview=(RecyclerView)findViewById(R.id.now_recview);
-        mlayoutManager=new LinearLayoutManager(this);Log.i("lllll","--");
-        recview.setLayoutManager(mlayoutManager);Log.i("lllll","--");
-        adapter=new recycler_adapter(this,now_list,"now_playing");Log.i("lllll","--");
-        recview.setAdapter(adapter);Log.i("lllll","--");
+        mlayoutManager=new LinearLayoutManager(this);
+        recview.setLayoutManager(mlayoutManager);
+        adapter=new recycler_adapter(this,now_list,"now_playing");
+        recview.setAdapter(adapter);
 
         ItemTouchHelper.SimpleCallback _ithCallback=new ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP | ItemTouchHelper.DOWN,ItemTouchHelper.LEFT ){
             //and in your imlpementaion of
@@ -101,15 +118,38 @@ public class Now_playing extends AppCompatActivity implements ApplicationControl
     }
 
     @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        if(contextualmode){
+            getMenuInflater().inflate(R.menu.contextual_menu,menu);
+            return true;
+        }
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id =item.getItemId();
         switch (id){
             case android.R.id.home:{
-                finish();
+                if(contextualmode){
+                    exitContexualMode();
+                }else {
+                    finish();
+                }
                 return true;
             }
             default:return super.onOptionsItemSelected(item);
         }
+    }
+
+    @Override
+    public void onBackPressed() {
+        if(contextualmode){
+            exitContexualMode();
+        }else {
+            super.onBackPressed();
+        }
+
     }
 
     @Override
@@ -128,4 +168,26 @@ public class Now_playing extends AppCompatActivity implements ApplicationControl
     }
 
 
+    @Override
+    public boolean onLongClick(View view) {
+        return false;
+    }
+
+    @Override
+    public void onClick(View view) {
+
+    }
+    public boolean startContextualMode(){
+        if(!contextualmode){
+            contextualmode=true;
+            getSupportActionBar().setTitle("");
+            invalidateOptionsMenu();
+        }
+        return true;
+    }
+    public void exitContexualMode(){
+        contextualmode=false;
+        //getSupportActionBar().setTitle("Now Playing");
+        //invalidateOptionsMenu();
+    }
 }

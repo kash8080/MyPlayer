@@ -1,6 +1,7 @@
 package com.example.rahul.myplayer;
 
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
@@ -10,17 +11,23 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.media.MediaCodec;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.provider.MediaStore;
+import android.support.design.widget.CoordinatorLayout;
+import android.support.design.widget.Snackbar;
 import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
+import android.util.SparseBooleanArray;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -44,6 +51,7 @@ import java.util.List;
 /**
  * Created by Rahul on 14-07-2016.
  */
+
 public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.viewholder>{
     public Context context;
     public ArrayList<songs> songs_list;
@@ -52,9 +60,13 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
     String id;
     adaptr face;
     ContentResolver resolver;
-    AlertDialog.Builder builder;
 
+    AlertDialog.Builder builder;
+    private SparseBooleanArray mSelectedItemsIds;
+    private boolean mActionModeSet =false;
+    songs currentPlayingSong;
     public boolean imagesset=false;
+    Long playlistIdForMultipleAdd;
 
 
     public interface adaptr{
@@ -63,9 +75,12 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
     public interface playlist_data{
         public Long getplaylist_id();
     }
+
     playlist_data plylst;
 
     public recycler_adapter(Context context,ArrayList<songs> list,String id) {
+
+        mSelectedItemsIds = new SparseBooleanArray();
         Log.i("llll", "construcor adapter"+id);
         this.context = context;
         this.songs_list=list;
@@ -82,7 +97,9 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
         }
         Log.i("llll", "--");
 
-        if(!(id.equals("allsongs")||id.equals("now_playing"))) {
+        //load images for every song list except allsongs
+        // which is already loaded with images in application controller
+        if(!(id.equals("allsongs")||id.equals("now_playing") || id.equals("playlist"))) {
             background back1 = new background();
             Log.i("llll", "--");
             back1.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,songs_list);
@@ -118,7 +135,7 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
     }
 
     @Override
-    public void onBindViewHolder(viewholder holder, int position) {
+    public void onBindViewHolder(final viewholder holder, final int position) {
 
         songs current=songs_list.get(position);
         String path;
@@ -147,11 +164,11 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
                         if(id.equals("open_album")){
                             holder.image.setImageResource(R.drawable.album);
                         } else {
-                        holder.image.setImageResource(R.drawable.mp3);}
-
+                            holder.image.setImageResource(R.drawable.mp3);
+                        }
+                     }
                 }
             }
-        }
             if(id.equals("open_album")){
                 holder.image.setImageResource(R.drawable.album);
             }
@@ -163,8 +180,18 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
         holder.name.setText(current.getName());
         holder.artist.setText(current.getArtist());
 
-    }
+        if(!id.equals("album")) {
 
+            holder.contextual_colour.setBackgroundColor(mSelectedItemsIds.get(position) ? 0x55aaaaaa
+                    : Color.TRANSPARENT);
+            if(mActionModeSet) {
+                holder.options.setVisibility(View.INVISIBLE);
+            }else{
+                holder.options.setVisibility(View.VISIBLE);
+            }
+        }
+    }
+//0x9934B5E4
     @Override
     public int getItemCount() {
         return songs_list.size();
@@ -175,8 +202,9 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
         TextView name;
         TextView artist;
         ImageView options;
-
+        LinearLayout contextual_colour;
         View item;
+
         public viewholder(View itemView) {
             super(itemView);
             item=itemView;
@@ -194,6 +222,7 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
                 options=(ImageView)itemView.findViewById(R.id.options);
                 image=(ImageView)itemView.findViewById(R.id.songs_image);
                 itemView.setOnClickListener(this);
+                contextual_colour=(LinearLayout)itemView.findViewById(R.id.backgroundcolour);
             }
 
             options.setOnClickListener(this);
@@ -203,6 +232,7 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
         @Override
         public void onClick(final View v) {
 
+            Log.i("clickedd","onClick");
             if(v.getId()==R.id.options){
                 if(id.equals("song") || id.equals("open_album")|| id.equals("allsongs")){
                     popup=new PopupMenu(context,v);
@@ -421,72 +451,8 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
                 }
             }
 
-        public ArrayList<songs> get_playlist(){
-             ArrayList<songs> playlist_list=new ArrayList<>();
-
-            final ContentResolver resolver = context.getContentResolver();
-            final Uri uri = MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI;
-            final String idKey = MediaStore.Audio.Playlists._ID;
-            final String nameKey = MediaStore.Audio.Playlists.NAME;
-            final String songs= MediaStore.Audio.Playlists._COUNT;
-
-
-            final String[] columns = { idKey, nameKey };
-            final Cursor playLists = resolver.query(uri, columns, null, null, null);
-            if (playLists == null) {
-
-            }else {
-                // Log a list of the playlists.
-                String playListName = null;
-                String playlist_id = null;
-
-                for (boolean hasItem = playLists.moveToFirst(); hasItem; hasItem = playLists.moveToNext()) {
-                    playListName = playLists.getString(playLists.getColumnIndex(nameKey));
-                    playlist_id = playLists.getString(playLists.getColumnIndex(idKey));
-                    songs playlist =new songs(Long.parseLong(playlist_id),playListName,"");
-                    playlist_list.add(playlist);
-                }
-            }
-            // Close the cursor.
-            if (playLists != null) {
-                try{ playLists.close();}catch (Exception e){e.printStackTrace();}
-            }
-            return playlist_list;
-
-        }
         /////-----------
-        public  String addTracksToPlaylist(final long id,songs track) {
-            int count = getplaylistsize(id);
-            ContentValues values ;
 
-                values = new ContentValues();
-                values.put(MediaStore.Audio.Playlists.Members.PLAY_ORDER, count + 1);
-                values.put(MediaStore.Audio.Playlists.Members.AUDIO_ID, track.getId());
-
-            Uri uri = MediaStore.Audio.Playlists.Members.getContentUri("external", id);
-
-            resolver.insert(uri, values);
-            resolver.notifyChange(Uri.parse("content://media"), null);
-            return "";
-        }
-
-        public int getplaylistsize(Long ids){
-
-            int i=0;
-            final Uri uri = MediaStore.Audio.Playlists.Members.getContentUri("external", ids);
-            final String idd=MediaStore.Audio.Playlists.Members._ID;
-            Cursor tracks = resolver.query(uri,new String[]{idd}, null, null, null);
-            if (tracks != null) {
-
-                while(tracks.moveToNext()){
-                    i++;
-                }
-            }
-            try{
-                tracks.close();
-            }catch (Exception e){e.printStackTrace();}
-            return i;
-        }
 
        public void removesongfromplaylist(Long song_id,Long playlist_id){
            Log.i("popop","remove song");
@@ -564,6 +530,73 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
         }
 
 
+        }
+
+    public  String addTracksToPlaylist(final long id,songs track) {
+        int count = getplaylistsize(id);
+        ContentValues values ;
+
+        values = new ContentValues();
+        values.put(MediaStore.Audio.Playlists.Members.PLAY_ORDER, count + 1);
+        values.put(MediaStore.Audio.Playlists.Members.AUDIO_ID, track.getId());
+
+        Uri uri = MediaStore.Audio.Playlists.Members.getContentUri("external", id);
+
+        resolver.insert(uri, values);
+        resolver.notifyChange(Uri.parse("content://media"), null);
+        return "";
+    }
+
+    public int getplaylistsize(Long ids){
+
+        int i=0;
+        final Uri uri = MediaStore.Audio.Playlists.Members.getContentUri("external", ids);
+        final String idd=MediaStore.Audio.Playlists.Members._ID;
+        Cursor tracks = resolver.query(uri,new String[]{idd}, null, null, null);
+        if (tracks != null) {
+
+            while(tracks.moveToNext()){
+                i++;
+            }
+        }
+        try{
+            tracks.close();
+        }catch (Exception e){e.printStackTrace();}
+        return i;
+    }
+
+    public ArrayList<songs> get_playlist(){
+        ArrayList<songs> playlist_list=new ArrayList<>();
+
+        final ContentResolver resolver = context.getContentResolver();
+        final Uri uri = MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI;
+        final String idKey = MediaStore.Audio.Playlists._ID;
+        final String nameKey = MediaStore.Audio.Playlists.NAME;
+        final String songs= MediaStore.Audio.Playlists._COUNT;
+
+
+        final String[] columns = { idKey, nameKey };
+        final Cursor playLists = resolver.query(uri, columns, null, null, null);
+        if (playLists == null) {
+
+        }else {
+            // Log a list of the playlists.
+            String playListName = null;
+            String playlist_id = null;
+
+            for (boolean hasItem = playLists.moveToFirst(); hasItem; hasItem = playLists.moveToNext()) {
+                playListName = playLists.getString(playLists.getColumnIndex(nameKey));
+                playlist_id = playLists.getString(playLists.getColumnIndex(idKey));
+                songs playlist =new songs(Long.parseLong(playlist_id),playListName,"");
+                playlist_list.add(playlist);
+            }
+        }
+        // Close the cursor.
+        if (playLists != null) {
+            try{ playLists.close();}catch (Exception e){e.printStackTrace();}
+        }
+        return playlist_list;
+
     }
 
 
@@ -620,8 +653,302 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
             songs_list=songses;
             imagesset=true;
             if(id.equals(con.currenntlistof) && !con.withimages){
-                con.setMylist(songs_list,"song",imagesset);
+                //earlier string was song song
+                con.setMylist(songs_list,id,imagesset);
             }
+        }
+    }
+
+
+    // action Mode Methods
+    public void toggleSelection(int position){
+        Log.i("contxt","toggle selection");
+        selectView(position, !mSelectedItemsIds.get(position));
+    }
+    public int getSelectedCount(){
+    Log.i("contxt","getselectedcount"+String.valueOf(mSelectedItemsIds.size()));
+        return mSelectedItemsIds.size();
+    }
+
+    //Remove selected selections
+    public void removeSelection() {
+        Log.i("contxt","remove selection");
+        mSelectedItemsIds = new SparseBooleanArray();
+        notifyDataSetChanged();
+    }
+
+    //Put or delete selected position into SparseBooleanArray
+    public void selectView(int position, boolean value) {
+        if (value)
+            mSelectedItemsIds.put(position, value);
+        else
+            mSelectedItemsIds.delete(position);
+
+        notifyDataSetChanged();
+    }
+
+    public void mActionmodeset(boolean b){
+        mActionModeSet=b;
+        notifyDataSetChanged();
+
+    }
+    //Return all selected ids
+    public SparseBooleanArray getSelectedIds() {
+        return mSelectedItemsIds;
+        }
+
+    public void addtoplaylist_contextual(){
+       // Log.i("contxt1","add to playlist");
+       //fetch all the playlist to choose from
+        final ArrayList<songs> playlist_list=get_playlist();
+        //show a dialog
+
+        CharSequence colors[]=new String[playlist_list.size()];
+        for(int i=0;i<playlist_list.size();i++){
+            String s=playlist_list.get(i).getName();
+            colors[i]=(CharSequence) s;
+        }
+        builder = new AlertDialog.Builder(context);
+        if(playlist_list.size()==0){
+            builder.setTitle("No Playlists found");
+        }else{
+            builder.setTitle("Choose a Playlist");
+
+        }
+        final ArrayList<Long> selectedsong_ids ;
+        selectedsong_ids=makeArrayOfidsFromSparseArray(false);
+
+        builder.setItems(colors, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                // the user clicked on colors[which]
+                Long l=playlist_list.get(which).getId();
+                playlistIdForMultipleAdd=l;
+                addToPaylistMultiple addtoPlaylist=new addToPaylistMultiple();
+                addtoPlaylist.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,selectedsong_ids);
+
+            }
+        });
+        builder.setCancelable(false);
+        builder.setPositiveButton(
+                "Cancel",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        dialog.dismiss();
+                    }
+                });
+        AlertDialog dialog =builder.create();
+        dialog.show();
+        removeSelection();
+
+
+
+    }
+    public void addtoqueue_contextual(){
+        //Log.i("contxt1","add to queue");
+
+    }
+    public void delete_contextual(){
+        ArrayList<Long> selectedsong_ids =new ArrayList<>();
+        currentPlayingSong=con.getsong();
+        Log.i("contxt2","delete");
+        selectedsong_ids=makeArrayOfidsFromSparseArray(true);
+
+        deletemultiple delete=new deletemultiple();
+        delete.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,selectedsong_ids);
+
+    }
+
+
+    public ArrayList<Long> makeArrayOfidsFromSparseArray(boolean removeFromRecyclerView){
+        ArrayList<Long> selectedsong_ids =new ArrayList<>();
+        //Loop all selected ids
+        for (int i = (mSelectedItemsIds.size() - 1); i >= 0; i--) {
+            if (mSelectedItemsIds.valueAt(i)) {
+                int position=mSelectedItemsIds.keyAt(i);
+
+                //If current id is selected remove the item via key
+                selectedsong_ids.add(songs_list.get(position).getId());
+                if(removeFromRecyclerView){
+                    songs_list.remove(mSelectedItemsIds.keyAt(i));
+                    notifyItemRemoved(position);//notify adapter
+                }
+
+            }
+        }
+        return selectedsong_ids;
+    }
+    public class deletemultiple extends AsyncTask<ArrayList<Long>,Void,Void>{
+        public boolean currentdeleted=false;
+        //songs current_song;
+
+        ProgressDialog progress=new ProgressDialog(context);
+        int typeBar=1;        // Determines type progress bar: 0 = spinner, 1 = horizontal
+        int songsdeleted=0;
+        int failed=0;
+        @Override
+        protected void onPreExecute() {
+            Log.i("contxt2","delete async");
+            //current_song=con.getsong();
+
+            progress.setMessage("PLease wait...");
+            progress.setCancelable(false);
+            progress.setProgressStyle(typeBar);
+            progress.setIndeterminate(false);
+            progress.setMax(getSelectedCount());
+            progress.setProgress(songsdeleted);
+            progress.show();
+            super.onPreExecute();
+
+        }
+
+        @Override
+        protected Void doInBackground(ArrayList<Long>... params) {
+            Log.i("contxt2","current song with id= "+String.valueOf(currentPlayingSong.getId()) );
+
+            ArrayList<Long> selectedsongs=params[0];
+            Log.i("contxt2","delete async size"+String.valueOf(selectedsongs.size()));
+
+            for(Long lid:selectedsongs){
+                Log.i("contxt2","deleting song with id= "+String.valueOf(lid) );
+
+                if(currentPlayingSong.getId().equals(lid)){
+                        Log.i("contxt2","current deleted");
+
+                        currentdeleted=true;
+                        publishProgress();
+                        //stopcurrent song paying and start from beginning
+                    }
+                    int i = 0;
+                    try {
+                        String where = MediaStore.Audio.Playlists.Members._ID + "=?";
+                        String sid = String.valueOf(lid);
+                        String[] whereVal = {sid};
+
+                        i=resolver.delete(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                                where, whereVal);
+                        Log.i("uiii",String.valueOf(i));
+
+
+                    }catch (Exception e){
+                        e.printStackTrace();
+                        Log.i("uiii",e.toString());
+                    }
+                if(i!=0){
+                    songsdeleted++;
+
+                }else{
+                    failed++;
+                }
+                    publishProgress();
+            }
+
+           return null;
+        }
+
+        @Override
+        protected void onProgressUpdate(Void... values) {
+            if(currentdeleted){
+                con.pause();
+            }
+            progress.setProgress(songsdeleted);
+            super.onProgressUpdate(values);
+        }
+
+        @Override
+        protected void onPostExecute(Void songses) {
+            super.onPostExecute(songses);
+            Log.i("contxt2","delete async total songs deleted "+String.valueOf(songsdeleted));
+
+            if(currentdeleted){
+                con.setMylist(songs_list,id,true);
+                con.playsong(0);
+                con.pause();
+            }
+            progress.dismiss();
+            CoordinatorLayout m=((MainActivity)context).coordinatorlayout;
+            Snackbar snack = Snackbar.make(m, "Success :"+String.valueOf(songsdeleted)+"     Failed:"+String.valueOf(failed), Snackbar.LENGTH_LONG);
+
+            snack.show();
+        }
+    }
+    public class addToPaylistMultiple extends AsyncTask<ArrayList<Long>,Void,Void>{
+        public boolean currentdeleted=false;
+        Long playlistid=new Long(playlistIdForMultipleAdd);
+        //songs current_song;
+
+        ProgressDialog progress=new ProgressDialog(context);
+        int typeBar=1;        // Determines type progress bar: 0 = spinner, 1 = horizontal
+        int success=0;
+
+        @Override
+        protected void onPreExecute() {
+           //current_song=con.getsong();
+
+            progress.setMessage("PLease wait...");
+            progress.setCancelable(false);
+            progress.setProgressStyle(typeBar);
+            progress.setIndeterminate(false);
+            progress.setMax(getSelectedCount());
+            progress.setProgress(success);
+            progress.show();
+            super.onPreExecute();
+
+        }
+
+        @Override
+        protected Void doInBackground(ArrayList<Long>... params) {
+            ArrayList<Long> list=params[0];
+            for(Long l:list){
+                addTracksToPlaylist(playlistid,l);
+                success++;
+                publishProgress();
+            }
+            return null;
+        }
+
+        @Override
+        protected void onProgressUpdate(Void... values) {
+            super.onProgressUpdate(values);
+
+        }
+        public  String addTracksToPlaylist(final long id,Long track) {
+            int count = getplaylistsize(id);
+            ContentValues values ;
+
+            values = new ContentValues();
+            values.put(MediaStore.Audio.Playlists.Members.PLAY_ORDER, count + 1);
+            values.put(MediaStore.Audio.Playlists.Members.AUDIO_ID, track);
+
+            Uri uri = MediaStore.Audio.Playlists.Members.getContentUri("external", id);
+
+            resolver.insert(uri, values);
+            resolver.notifyChange(Uri.parse("content://media"), null);
+            return "";
+        }
+
+        public int getplaylistsize(Long ids){
+
+            int i=0;
+            final Uri uri = MediaStore.Audio.Playlists.Members.getContentUri("external", ids);
+            final String idd=MediaStore.Audio.Playlists.Members._ID;
+            Cursor tracks = resolver.query(uri,new String[]{idd}, null, null, null);
+            if (tracks != null) {
+
+                while(tracks.moveToNext()){
+                    i++;
+                }
+            }
+            try{
+                tracks.close();
+            }catch (Exception e){e.printStackTrace();}
+            return i;
+        }
+
+        @Override
+        protected void onPostExecute(Void songses) {
+            super.onPostExecute(songses);
+            progress.dismiss();
         }
     }
 

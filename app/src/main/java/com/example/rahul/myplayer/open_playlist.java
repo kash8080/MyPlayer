@@ -64,7 +64,23 @@ public class open_playlist extends AppCompatActivity implements ApplicationContr
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.i(tag,"on create ");
-        super.onCreate(savedInstanceState);
+        con=new ApplicationController(this.getApplicationContext(),this);
+
+        if(savedInstanceState==null){
+            super.onCreate(savedInstanceState);
+        }else{
+            if(con.needforpermissions(android.Manifest.permission.READ_EXTERNAL_STORAGE)) {
+                super.onCreate(new Bundle());
+                //activity trying to restore previous state which is null
+                // now because the system terminates the rocess while revoking perissions
+                startActivity(new Intent(this, MainActivity.class));
+                //finish called to stop further proccess of this activity
+                finish();
+            }else{
+                super.onCreate(savedInstanceState);
+            }
+
+        }
         setContentView(R.layout.activity_open_playlist);
 
         toolbar=(Toolbar)findViewById(R.id.MyToolbar);
@@ -121,7 +137,6 @@ public class open_playlist extends AppCompatActivity implements ApplicationContr
         fab1.setOnClickListener(this);
 
 
-        con=new ApplicationController(this.getApplicationContext(),this);
         rec_view=(RecyclerView)findViewById(R.id.rec_view2);
 
         mlayoutmanager=new LinearLayoutManager(this);

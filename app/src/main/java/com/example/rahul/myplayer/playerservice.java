@@ -293,11 +293,11 @@
     if (player != null) {
         try{
             unregisterReceiver(mbreceiver);
+            player.setPlayWhenReady(false);
+            setstate();
+            updateplaypause();
         }catch (Exception e){e.printStackTrace();}
 
-        player.setPlayWhenReady(false);
-        setstate();
-        updateplaypause();
     }
     }
     public static songs getsong() {
@@ -706,14 +706,16 @@
                 // if (mMediaPlayer.isPlaying()) mMediaPlayer.stop();
                 //  mMediaPlayer.release();
                 //mMediaPlayer = null;
+                if(isPlaying()) {
+                    playpausenoti = R.drawable.play_white;
+                    mBuilder.mActions.get(1).icon = playpausenoti;
+                    mNotificationManager.notify(400, mBuilder.build());
+                }
                 hasfocus=false;
                 pause();
                 //player.release();
                 msession.setActive(false);
                 Log.i("bnbnn","AUDIOFOCUS_LOSS");
-                playpausenoti=R.drawable.play_white;
-                mBuilder.mActions.get(1).icon=playpausenoti;
-                mNotificationManager.notify(400,mBuilder.build());
 
                 break;
 

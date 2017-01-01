@@ -7,13 +7,24 @@
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
         <item name="android:windowContentOverlay">@null</item>
+
+        <!--  It should be true otherwise action mode will not overlay toolbar -->
+        <item name="windowActionModeOverlay">true</item>
+ 
+        <!--  For Custom Action Mode Background Color/Drawable -->
+        <item name="actionModeBackground">@color/colorPrimaryLight</item>
+        <item name="actionBarPopupTheme">@style/ActionModeOverflowMenu</item>
+
     </style>
 
     <style name="AppTheme.NoActionBar">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
     </style>
-
+    <style name="ActionModeOverflowMenu" parent="Widget.AppCompat.ListPopupWindow">
+        <item name="android:textColor">@color/colorWhite</item>
+        <!--<item name="android:background">@color/colorPrimaryLight</item>     Widget.AppCompat.ListPopupWindow-->
+    </style>
     <style name="MyCustomTabLayout" parent="Widget.Design.TabLayout">
 
         <item name="tabIndicatorColor">?attr/colorAccent</item>

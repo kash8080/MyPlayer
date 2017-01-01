@@ -1,16 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
 
     android:orientation="horizontal"
+    android:id="@+id/backgroundcolour"
     android:layout_width="match_parent"
     android:layout_height="70dp"
-    android:paddingBottom="10dp"
-    android:background="?android:attr/selectableItemBackground"
+    android:paddingTop="5dp"
     android:clickable="true"
     android:focusable="true"
-
+    android:background="?android:attr/selectableItemBackground"
+    android:foreground="?android:attr/selectableItemBackground"
 
     >
+
 <ImageView
     android:layout_width="60dp"
     android:layout_height="60dp"
@@ -38,7 +41,7 @@
             android:layout_marginTop="5dp"
             android:paddingTop="5dp"
             android:paddingLeft="5dp"
-            android:textSize="14sp"
+            android:textSize="13sp"
             android:textColor="#333333"
             android:id="@+id/songs_name"
             android:maxLines="1" />
@@ -47,6 +50,7 @@
             android:layout_height="wrap_content"
             android:padding="5dp"
             android:textSize="12sp"
+            android:maxLines="1"
             android:id="@+id/songs_artist"
             />
 
@@ -67,9 +71,11 @@
         android:src="@drawable/options"
         android:id="@+id/options"
         android:paddingLeft="10dp"
+        android:paddingStart="10dp"
         android:paddingTop="15dp"
         android:paddingBottom="15dp"
         android:paddingEnd="3dp"
+        android:paddingRight="3dp"
         android:background="#00ffffff"
         />
         <View

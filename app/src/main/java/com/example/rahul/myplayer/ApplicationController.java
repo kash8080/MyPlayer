@@ -79,6 +79,7 @@ public class ApplicationController extends Application {
     public ApplicationController(Context applicationcontext, Context Activitycontext) {
         this.applicationcontext = applicationcontext;
         this.activitycontext = Activitycontext;
+
         inform = (informactivity) Activitycontext;
 
         if (musicSrv != null) {
@@ -263,10 +264,13 @@ public class ApplicationController extends Application {
          void updateprofileimage();
     }
     public  static void app_playnextsong(){
-        inform.playnextsong();
+        try {
+            inform.playnextsong();
+        }catch (Exception e){e.printStackTrace();}
     }
     public static void app_refresh(){
-        inform.refresh();
+        try{inform.refresh();
+        }catch (Exception e){e.printStackTrace();}
     }
     public static void app_updateprofileimage(){
         inform.updateprofileimage();
@@ -279,6 +283,7 @@ public class ApplicationController extends Application {
         ApplicationController.currenntlistof=from;
         ApplicationController.withimages=withimg;
         musicSrv.setMylist(list);
+        Log.i("clist","set my list --current list of- "+currenntlistof);
     }
 
     //functions for the service and activity interaction
@@ -316,8 +321,12 @@ public class ApplicationController extends Application {
 
     }
     public static void playsong(int pos) {
-
+        Log.i("clist","current list of- "+currenntlistof);
         musicSrv.playsong(pos);
+        Log.i("contxt2","playing current song with id= "+String.valueOf(getsong().getId()) );
+        Log.i("contxt2","playing current song with id= "+String.valueOf(allsonglist.get(pos).getId()) );
+
+
     }
     public static boolean isPlaying() {
 
@@ -385,6 +394,7 @@ public class ApplicationController extends Application {
 
     //to load all the songs
     public void fetchallsonglist(){
+        allsonglist=new ArrayList<>();
         Log.i("llllp","fetch list");
         String[] proj={android.provider.MediaStore.Audio.Media.TITLE, MediaStore.Audio.Media.ALBUM_ID,MediaStore.Audio.Media._ID,android.provider.MediaStore.Audio.Media.ARTIST};
         //using mediaplayer

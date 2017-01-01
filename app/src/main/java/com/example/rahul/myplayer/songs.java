@@ -15,7 +15,7 @@ public class songs {
     private String imagepath ;
     private int no_of_songs ;
     Bitmap bitmap;
-
+    boolean clicked=false;
     public Bitmap getBitmap() {
         return bitmap;
     }

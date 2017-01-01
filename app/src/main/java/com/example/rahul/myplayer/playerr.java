@@ -38,11 +38,26 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
     public int viewupdater=0;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+        con=new ApplicationController(this.getApplicationContext(),this);
+
+        if(savedInstanceState==null){
+            super.onCreate(savedInstanceState);
+        }else{
+            if(con.needforpermissions(android.Manifest.permission.READ_EXTERNAL_STORAGE)) {
+                super.onCreate(new Bundle());
+                //activity trying to restore previous state which is null
+                // now because the system terminates the rocess while revoking perissions
+                startActivity(new Intent(this, MainActivity.class));
+                //finish called to stop further proccess of this activity
+                finish();
+            }else{
+                super.onCreate(savedInstanceState);
+            }
+
+        }
         setContentView(R.layout.activity_playerr);
         Log.i("kkkk","oncreate---------------");
 
-        con=new ApplicationController(this.getApplicationContext(),this);
         toolbar=(Toolbar)findViewById(R.id.player_toolbar);
         setSupportActionBar(toolbar);
         try{

@@ -1,6 +1,8 @@
 package com.example.rahul.myplayer;
 
+import android.*;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Parcel;
 import android.os.Parcelable;
@@ -13,20 +15,34 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.MenuItem;
 
-public class settings extends AppCompatActivity  {
+public class settings extends AppCompatActivity  implements ApplicationController.informactivity {
 
     Toolbar toolbar;
     static Context  context;
-
+    ApplicationController con;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_settings);
 
+        con=new ApplicationController(this.getApplicationContext(),this);
+
+        if(savedInstanceState==null){
+            super.onCreate(savedInstanceState);
+        }else{
+            if(con.needforpermissions(android.Manifest.permission.READ_EXTERNAL_STORAGE)) {
+                super.onCreate(new Bundle());
+                startActivity(new Intent(this, MainActivity.class));
+            }else{
+                super.onCreate(savedInstanceState);
+            }
+
+        }
+
+        setContentView(R.layout.activity_settings);
         context=this;
-        toolbar=(Toolbar) findViewById(R.id.settings_toolbar);
+
+        toolbar = (Toolbar) findViewById(R.id.settings_toolbar);
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setTitle("Settings");
@@ -37,6 +53,21 @@ public class settings extends AppCompatActivity  {
                 .commit();
 
 
+
+    }
+
+    @Override
+    public void playnextsong() {
+
+    }
+
+    @Override
+    public void refresh() {
+
+    }
+
+    @Override
+    public void updateprofileimage() {
 
     }
 

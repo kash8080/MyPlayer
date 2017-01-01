@@ -60,7 +60,7 @@ public class playlist extends Fragment {
     }
 
    public ArrayList<songs> get_playlist(){
-
+        playlist_list=new ArrayList<>();
        final ContentResolver resolver = getActivity().getContentResolver();
        final Uri uri = MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI;
        final String idKey = MediaStore.Audio.Playlists._ID;
