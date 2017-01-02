@@ -141,6 +141,7 @@ public class home extends Fragment{
             window.setStatusBarColor(Color.rgb(69,90,100));
         }*/
         }else if (!hasCheckedItems && mActionMode != null)
+
             // there no selected items, finish the actionMode
             mActionMode.finish();
 
@@ -151,8 +152,11 @@ public class home extends Fragment{
     //Set action mode null after use
     public void setNullToActionMode() {
         if (mActionMode != null) {
+            Log.i("animt","null to action mode");
+
             mActionMode = null;
             mainact.releasedrawer();
+            removeSelection();
             rec_adapter.mActionmodeset(false);
        /* if (Build.VERSION.SDK_INT >= 21) {
             Window window = getActivity().getWindow();

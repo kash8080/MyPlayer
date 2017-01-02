@@ -1,5 +1,7 @@
 package com.example.rahul.myplayer;
 
+import android.animation.AnimatorSet;
+import android.animation.ObjectAnimator;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.ContentResolver;
@@ -18,8 +20,9 @@ import android.os.AsyncTask;
 import android.provider.MediaStore;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.Snackbar;
-import android.support.v7.widget.PopupMenu;
+import android.widget.PopupMenu;
 import android.support.v7.widget.RecyclerView;
+import android.text.InputType;
 import android.util.Log;
 import android.util.SparseBooleanArray;
 import android.view.Gravity;
@@ -27,21 +30,13 @@ import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.LinearInterpolator;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import com.google.android.exoplayer.ExoPlayer;
-import com.google.android.exoplayer.MediaCodecAudioTrackRenderer;
-import com.google.android.exoplayer.MediaCodecSelector;
-import com.google.android.exoplayer.MediaCodecVideoTrackRenderer;
-import com.google.android.exoplayer.extractor.ExtractorSampleSource;
-import com.google.android.exoplayer.upstream.Allocator;
-import com.google.android.exoplayer.upstream.DataSource;
-import com.google.android.exoplayer.upstream.DefaultAllocator;
-import com.google.android.exoplayer.upstream.DefaultUriDataSource;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -62,6 +57,12 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
     ContentResolver resolver;
 
     AlertDialog.Builder builder;
+
+    //for animation set
+    int startpos=0;
+    boolean cananimate=true;
+
+    //for ActionMode
     private SparseBooleanArray mSelectedItemsIds;
     private boolean mActionModeSet =false;
     songs currentPlayingSong;
@@ -75,6 +76,7 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
     public interface playlist_data{
         public Long getplaylist_id();
     }
+
 
     playlist_data plylst;
 
@@ -120,6 +122,7 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
         resolver=context.getContentResolver();
     }
 
+
     @Override
     public viewholder onCreateViewHolder(ViewGroup parent, int viewType) {
         View view=null;
@@ -136,6 +139,7 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
 
     @Override
     public void onBindViewHolder(final viewholder holder, final int position) {
+        Log.i("animt","onBindView at pos"+String.valueOf(position));
 
         songs current=songs_list.get(position);
         String path;
@@ -164,6 +168,7 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
                         if(id.equals("open_album")){
                             holder.image.setImageResource(R.drawable.album);
                         } else {
+
                             holder.image.setImageResource(R.drawable.mp3);
                         }
                      }
@@ -189,6 +194,15 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
             }else{
                 holder.options.setVisibility(View.VISIBLE);
             }
+        }
+        Log.i("animt","on bind view ... mActionmode="+String.valueOf(mActionModeSet));
+
+        if(id.equals("allsongs") && !mActionModeSet &&cananimate) {
+            Log.i("animt","animating view.....");
+            boolean goesdown = (position >= startpos);
+            Animationclass anim = new Animationclass();
+            anim.animate(holder, goesdown);
+            startpos = position;
         }
     }
 //0x9934B5E4
@@ -232,6 +246,10 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
         @Override
         public void onClick(final View v) {
 
+            if(mActionModeSet){
+                //this prevents song playing on double tapping in actionmode
+                return;
+            }
             Log.i("clickedd","onClick");
             if(v.getId()==R.id.options){
                 if(id.equals("song") || id.equals("open_album")|| id.equals("allsongs")){
@@ -303,10 +321,12 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
 
                                     AlertDialog alert = builder.create();
                                     alert.show();
-
                                     return true;
                                 }
-
+                                case R.id.psongs_playnext: {
+                                    con.addSongtoNextPos(songs_list.get(getLayoutPosition()));
+                                    return true;
+                                }
                             }
                             return true;
                         }
@@ -347,7 +367,40 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
                                 alert.show();
 
                             }
+                            else if(item.getItemId()==R.id.Oplaylist_rename){
+                                builder.setTitle("Playlist name");
+                                builder.setCancelable(true);
+                                // Set up the input
+                                final EditText input = new EditText(context);
+                                input.setInputType(InputType.TYPE_CLASS_TEXT );
+                                builder.setView(input);
+                                builder.setPositiveButton(
+                                        "Rename",
+                                        new DialogInterface.OnClickListener() {
+                                            public void onClick(DialogInterface dialog, int id) {
+                                                String str=input.getText().toString();
+                                                int pos=getLayoutPosition();
+                                                Long playlistid=songs_list.get(pos).getId();
+                                                ContentValues values = new ContentValues();
+                                                values.put(MediaStore.Audio.Playlists.NAME,str);
+                                                songs_list.get(pos).setName(str);
+                                                resolver.update(MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI,
+                                                        values, "_id=" + playlistid, null);
+                                                notifyItemChanged(pos);
+                                            }
+                                        });
 
+                                builder.setNegativeButton(
+                                        "Cancel",
+                                        new DialogInterface.OnClickListener() {
+                                            public void onClick(DialogInterface dialog, int id) {
+                                                dialog.cancel();
+                                            }
+                                        });
+
+                                AlertDialog alert = builder.create();
+                                alert.show();
+                            }
                             return true;
                         }
                     });
@@ -529,8 +582,20 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
             }
         }
 
-
         }
+
+    public class Animationclass{
+        public void animate(RecyclerView.ViewHolder holder,boolean goesdown){
+            //AnimatorSet set=new AnimatorSet();
+            int size=context.getResources().getInteger(R.integer.animationsize);
+            ObjectAnimator object1=ObjectAnimator.ofFloat(holder.itemView,"translationY",goesdown?(size):(-size),0);
+            object1.setDuration(300);
+            object1.start();
+            //set.playTogether(object1);
+            //set.start();
+        }
+    }
+
 
     public  String addTracksToPlaylist(final long id,songs track) {
         int count = getplaylistsize(id);
@@ -661,8 +726,9 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
 
 
     // action Mode Methods
+
     public void toggleSelection(int position){
-        Log.i("contxt","toggle selection");
+        Log.i("animt","toggle selection");
         selectView(position, !mSelectedItemsIds.get(position));
     }
     public int getSelectedCount(){
@@ -672,9 +738,10 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
 
     //Remove selected selections
     public void removeSelection() {
-        Log.i("contxt","remove selection");
         mSelectedItemsIds = new SparseBooleanArray();
-        notifyDataSetChanged();
+        Log.i("animt","remove selection");
+
+       notifyDataSetChanged();
     }
 
     //Put or delete selected position into SparseBooleanArray
@@ -684,12 +751,21 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
         else
             mSelectedItemsIds.delete(position);
 
-        notifyDataSetChanged();
+        notifyItemChanged(position);
+        //notifyDataSetChanged();
     }
 
     public void mActionmodeset(boolean b){
         mActionModeSet=b;
         notifyDataSetChanged();
+
+        if(!b) {
+            cananimate=false;
+            delayedactionmodeset del = new delayedactionmodeset();
+            del.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        }
+
+        Log.i("animt","actionmodeset");
 
     }
     //Return all selected ids
@@ -746,7 +822,24 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
     }
     public void addtoqueue_contextual(){
         //Log.i("contxt1","add to queue");
+        //Loop all selected ids
 
+        Thread t=new Thread(new Runnable() {
+            @Override
+            public void run() {
+                ArrayList<songs> songlist=new ArrayList<>();
+                for (int i = 0;i<(mSelectedItemsIds.size());i++) {
+                    if (mSelectedItemsIds.valueAt(i)) {
+                        int position=mSelectedItemsIds.keyAt(i);
+                        //add the song from adapter songlist at this position to the current list of songs
+                        songlist.add(songs_list.get(position));
+                    }
+                }
+                con.addSongToList(songlist);
+            }
+        });
+        t.run();
+        removeSelection();
     }
     public void delete_contextual(){
         ArrayList<Long> selectedsong_ids =new ArrayList<>();
@@ -758,7 +851,6 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
         delete.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,selectedsong_ids);
 
     }
-
 
     public ArrayList<Long> makeArrayOfidsFromSparseArray(boolean removeFromRecyclerView){
         ArrayList<Long> selectedsong_ids =new ArrayList<>();
@@ -778,6 +870,7 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
         }
         return selectedsong_ids;
     }
+
     public class deletemultiple extends AsyncTask<ArrayList<Long>,Void,Void>{
         public boolean currentdeleted=false;
         //songs current_song;
@@ -952,4 +1045,21 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
         }
     }
 
+    public class delayedactionmodeset extends AsyncTask<ArrayList<Void>,Void,Void>{
+        @Override
+        protected Void doInBackground(ArrayList<Void>... arrayLists) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            cananimate=true;
+            super.onPostExecute(aVoid);
+        }
+    }
 }

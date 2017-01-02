@@ -15,9 +15,10 @@
     >
 
 <ImageView
-    android:layout_width="60dp"
-    android:layout_height="60dp"
-    android:padding="5dp"
+    android:layout_width="50dp"
+    android:layout_height="50dp"
+    android:layout_margin="5dp"
+    android:layout_gravity="center"
     android:src="@drawable/mp3"
     android:id="@+id/songs_image"
     />

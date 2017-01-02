@@ -285,7 +285,9 @@ public class ApplicationController extends Application {
         musicSrv.setMylist(list);
         Log.i("clist","set my list --current list of- "+currenntlistof);
     }
-
+    public void addSongToList(ArrayList<songs> songlist){
+        musicSrv.addsongstolist(songlist);
+    }
     //functions for the service and activity interaction
     public static void setplayer() {
 
@@ -378,7 +380,9 @@ public class ApplicationController extends Application {
         musicSrv.setShuffle(shuffle);
 
     }
-
+    public void addSongtoNextPos(songs s){
+        musicSrv.addSongToNextPos(s);
+    }
 
     //functions for list of all songs
     public static ArrayList<songs> getAllsonglist() {

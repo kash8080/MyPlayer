@@ -9,6 +9,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.provider.MediaStore;
 import android.support.design.widget.AppBarLayout;
 import android.support.design.widget.CollapsingToolbarLayout;
@@ -53,7 +54,7 @@ public class open_playlist extends AppCompatActivity implements ApplicationContr
     Long album_id;
     boolean listset=false;
     Toolbar toolbar,desc_toolbar;
-    String title="defualt";
+    String title="";
     ImageView image,over_image;
     TextView over_title,over_artist,numberofsongs;
     String playall="false";
@@ -81,23 +82,10 @@ public class open_playlist extends AppCompatActivity implements ApplicationContr
             }
 
         }
-        setContentView(R.layout.activity_open_playlist);
 
-        toolbar=(Toolbar)findViewById(R.id.MyToolbar);
-        collapsingToolbarLayout=(CollapsingToolbarLayout)findViewById(R.id.collapse_toolbar);
-        image=(ImageView)findViewById(R.id.album_image);
-        desc_toolbar=(Toolbar)findViewById(R.id.desc_bar);
-        over_image=(ImageView)findViewById(R.id.over_image);
-        over_title=(TextView)findViewById(R.id.overtitle);
-        over_artist=(TextView)findViewById(R.id.over_artist);
-        numberofsongs=(TextView)findViewById(R.id.numberofsongs);
-        fab1=(FloatingActionButton)findViewById(R.id.fab1);
+        inititalise();
+        doasync inback=new doasync();
 
-        setSupportActionBar(toolbar);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-
-        list=new ArrayList<>();
-        resolver = getContentResolver();
         try{
             method=getIntent().getStringExtra("method");
             if(method.equals("playlist")){
@@ -117,38 +105,16 @@ public class open_playlist extends AppCompatActivity implements ApplicationContr
         String string=list.size()+" songs";
         numberofsongs.setText(string);
 
-
         if(method.equals("playlist")){
-        setalbumartfromsongs();
-        }
-
-
-        if(album_art!=null){
-           bitmap = BitmapFactory.decodeFile(album_art);
-            if(bitmap!=null){
-                over_image.setImageBitmap(bitmap);
-                image.setImageBitmap(bitmap);
-            }
-        }
-
-        collapsingToolbarLayout.setCollapsedTitleTextColor(Color.TRANSPARENT);
-        collapsingToolbarLayout.setExpandedTitleColor(Color.TRANSPARENT);
-
-        fab1.setOnClickListener(this);
-
-
-        rec_view=(RecyclerView)findViewById(R.id.rec_view2);
-
-        mlayoutmanager=new LinearLayoutManager(this);
-
-        if(method.equals("playlist")){
+            inback.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,2);
             adapter=new recycler_adapter(this,list,"open_playlist");
         }else{
             if(playall.equals("true")){
-            adapter=new recycler_adapter(this,list,"open_album_true");
+                adapter=new recycler_adapter(this,list,"open_album_true");
             }else{
                 adapter=new recycler_adapter(this,list,"open_album");
             }
+            rec_view.setAdapter(adapter);
         }
 
         Log.i(tag,"adapter done in oncreate");
@@ -156,49 +122,89 @@ public class open_playlist extends AppCompatActivity implements ApplicationContr
         Log.i(tag,"setting adapter");
         rec_view.setAdapter(adapter);
 
-        //con.setlist(list);
+        refreshview();
 
-        //
-         appBarLayout= (AppBarLayout) findViewById(R.id.MyAppbar);
-        Log.i("ddss","total scroll range: "+appBarLayout.getTotalScrollRange());
+        collapsingToolbarLayout.setCollapsedTitleTextColor(Color.WHITE);
+        collapsingToolbarLayout.setExpandedTitleColor(Color.TRANSPARENT);
+
+        fab1.setOnClickListener(this);
+
+
+        appBarLayout= (AppBarLayout) findViewById(R.id.MyAppbar);
 
         appBarLayout.addOnOffsetChangedListener(new AppBarLayout.OnOffsetChangedListener() {
+            int scrollrange=-1;
+            boolean isShow=false;
             @Override
             public void onOffsetChanged(AppBarLayout appBarLayout, int verticalOffset) {
-                if(verticalOffset==-400){
-                    Log.i("ddss","setting title");
-                    collapsingToolbarLayout.setCollapsedTitleTextColor(Color.WHITE);
+                Log.i("ddddff","vertical offset="+String.valueOf(verticalOffset));
+                if (scrollrange == -1) {
+                    collapsingToolbarLayout.setTitle(" ");
+                    scrollrange = appBarLayout.getTotalScrollRange();
+                    Log.i("ddddff","scroll range="+String.valueOf(scrollrange));
+
                 }
-                else{
-                    Log.i("ddss","removing title");
-                    collapsingToolbarLayout.setCollapsedTitleTextColor(Color.TRANSPARENT);
-                    getSupportActionBar().setTitle("");
+                if (scrollrange + verticalOffset == 0) {
+                    collapsingToolbarLayout.setTitle(title);
+                    numberofsongs.setTextColor(Color.TRANSPARENT);
+                    //collapsingToolbarLayout.setCollapsedTitleTextColor(Color.GRAY);
+                    isShow = true;
+                } else if(isShow) {
+                    numberofsongs.setTextColor(Color.WHITE);
+                    collapsingToolbarLayout.setTitle(" ");//carefull there should a space between double quote otherwise it wont work
+                    isShow = false;
                 }
             }
         });
-
-
+    }
+    public void refreshview(){
+        Log.i("lkll","pop1");
+        if(album_art!=null){
+            bitmap = BitmapFactory.decodeFile(album_art);
+            if(bitmap!=null){
+                over_image.setVisibility(View.VISIBLE);
+                over_image.setImageBitmap(bitmap);
+                image.setImageBitmap(bitmap);
+            }else{
+                Log.i("lkll","pop");
+                over_image.setVisibility(View.INVISIBLE);
+            }
+        }else{
+            Log.i("lkll","pop2");
+            over_image.setVisibility(View.INVISIBLE);
+        }
         // for getting colors from bitmap  using pallete lbrary
         if(bitmap!=null) {
             Palette palette = Palette.from(bitmap).generate();
             Palette.Swatch swatch = palette.getDarkMutedSwatch();
-            try{
-            desc_toolbar.setBackgroundColor(swatch.getRgb());
-            }catch (Exception e){
+            try {
+                desc_toolbar.setBackgroundColor(swatch.getRgb());
+            } catch (Exception e) {
 
             }
-        }else{
-
         }
-        /*
-        Palette.getVibrantSwatch()
-        Palette.getDarkVibrantSwatch()
-        Palette.getLightVibrantSwatch()
-        Palette.getMutedSwatch()
-        Palette.getDarkMutedSwatch()
-        Palette.getLightMutedSwatch()
-         */
+    }
+    public void inititalise(){
+        setContentView(R.layout.activity_open_playlist);
 
+        rec_view=(RecyclerView)findViewById(R.id.rec_view2);
+        mlayoutmanager=new LinearLayoutManager(this);
+
+        toolbar=(Toolbar)findViewById(R.id.MyToolbar);
+        collapsingToolbarLayout=(CollapsingToolbarLayout)findViewById(R.id.collapse_toolbar);
+        image=(ImageView)findViewById(R.id.album_image);
+        desc_toolbar=(Toolbar)findViewById(R.id.desc_bar);
+        over_image=(ImageView)findViewById(R.id.over_image);
+        over_title=(TextView)findViewById(R.id.overtitle);
+        over_artist=(TextView)findViewById(R.id.over_artist);
+        numberofsongs=(TextView)findViewById(R.id.numberofsongs);
+        fab1=(FloatingActionButton)findViewById(R.id.fab1);
+
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+
+        list=new ArrayList<>();
+        resolver = getContentResolver();
     }
 
     public void getalbum(){
@@ -281,6 +287,7 @@ public class open_playlist extends AppCompatActivity implements ApplicationContr
             }
 
         Log.i(tag,"returning list of size"+list.size());
+        setalbumartfromsongs();
         return list;
 
     }
@@ -318,7 +325,6 @@ public class open_playlist extends AppCompatActivity implements ApplicationContr
         }
 
     }
-
 
 
     @Override
@@ -370,6 +376,30 @@ public class open_playlist extends AppCompatActivity implements ApplicationContr
             play_all_songs();
         }
     }
+    public class doasync extends AsyncTask<Integer,Void,Void>{
+        int i;
+        @Override
+        protected Void doInBackground(Integer... integers) {
+            i=integers[0];
+            if(i==0){
+                getalbum();
+            }else if(i==1){
+                get_playlist();
+            }else if(i==2){
+                setalbumartfromsongs();
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            //if album or after downloading images of playlist
+            //rec_view.setAdapter(adapter);
+            refreshview();
+            super.onPostExecute(aVoid);
+        }
+    }
+
 }
 
 

@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.provider.MediaStore;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
@@ -32,7 +33,7 @@ import java.util.List;
 public class playlist extends Fragment {
 
     final static String tag="tstng1";
-    ArrayList<songs> playlist_list=new ArrayList<>();
+    ArrayList<songs> playlist_list;
     RecyclerView rec_view;
     RecyclerView.LayoutManager mlayoutmanager;
     recycler_adapter adapter;
@@ -44,15 +45,15 @@ public class playlist extends Fragment {
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View v=inflater.inflate(R.layout.activity_playlist,container,false);
         resolver = getActivity().getContentResolver();
-
+        playlist_list=new ArrayList<>();
         rec_view=(RecyclerView)v.findViewById(R.id.recview);
         mlayoutmanager=new LinearLayoutManager(getActivity());
 
-        adapter=new recycler_adapter(getActivity(),get_playlist(),"playlist");
+        doasync inback=new doasync();
+        inback.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        adapter=new recycler_adapter(getActivity(),playlist_list,"playlist");
         rec_view.setLayoutManager(mlayoutmanager);
         rec_view.setAdapter(adapter);
-
-
 
         Log.i("cccc","oncreate playlist");
         return v;
@@ -85,6 +86,7 @@ public class playlist extends Fragment {
                playlist_songs=getplaylistsize(playlist_id);
               songs playlist =new songs(Long.parseLong(playlist_id),playListName,playlist_songs+" songs","",0);
                playlist_list.add(playlist);
+
                Log.i(tag, playListName);
            }
        }
@@ -114,4 +116,19 @@ public class playlist extends Fragment {
    }
 
 
+    public class doasync extends AsyncTask<Void,Void,Void>{
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+            get_playlist();
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+            adapter.songs_list=playlist_list;
+            adapter.notifyDataSetChanged();
+        }
+    }
 }

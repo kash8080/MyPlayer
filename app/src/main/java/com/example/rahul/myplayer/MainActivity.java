@@ -1,5 +1,7 @@
 package com.example.rahul.myplayer;
 
+import android.animation.AnimatorSet;
+import android.animation.ObjectAnimator;
 import android.app.AlertDialog;
 
 import android.Manifest;
@@ -18,6 +20,7 @@ import android.graphics.Color;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
@@ -49,6 +52,8 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.Window;
+import android.view.animation.Animation;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -75,6 +80,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.concurrent.Executor;
 import java.util.zip.Inflater;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener,
@@ -314,12 +320,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         if (id == R.id.add_new_playlist) {
             builder.setTitle("Playlist name");
             builder.setCancelable(true);
-
-            View v = getLayoutInflater().inflate(R.layout.dialog, null);
-            final EditText input = (EditText) v.findViewById(R.id.newplaylistname);
-
-            builder.setView(v);
-            builder.setPositiveButton(
+            final EditText input = new EditText(this);
+            // Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
+            input.setInputType(InputType.TYPE_CLASS_TEXT );
+            builder.setView(input);
+           builder.setPositiveButton(
                     "Create",
                     new DialogInterface.OnClickListener() {
                         public void onClick(DialogInterface dialog, int id) {
@@ -445,7 +450,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     image.setImageBitmap(bitmap);
                     imageslide.setImageBitmap(bitmap);
                 } else {
-                    image.setImageResource(R.drawable.mp3);
+                    image.setImageResource(R.drawable.mp3full);
                     imageslide.setImageResource(R.drawable.mp3full);
                 }
             } catch (Exception e) {
@@ -907,6 +912,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     protected void onResume() {
         Log.i("llllp","onresume");
         super.onResume();
+        //animation for tablayout
+        //AnimatorSet set=new AnimatorSet();
+
+        int size=this.getResources().getInteger(R.integer.animationsize);
+        ObjectAnimator object1=ObjectAnimator.ofFloat(tablayout,"translationY",-size,0);
+        object1.setDuration(500);
+        object1.start();
+        //set.playTogether(object1);
+        //set.start();
 
         //for facebook
         tokentracker.startTracking();
@@ -964,11 +978,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         if(drawer!=null) {
             drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
             String currentDateandTime = sdf.format(new Date());
-
             Log.i("colortiming","tablayout color change "+currentDateandTime);
-
-            //colorprimarylight
-            //tablayout.setBackgroundColor(Color.rgb(96,125,139));
+            changecolor change=new changecolor();
+            //0 for lock 1 for unlock
+            change.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,0);
         }
     }
 
@@ -977,13 +990,50 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         if(drawer!=null) {
             drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
             String currentDateandTime = sdf.format(new Date());
-
             Log.i("colortiming","tablayout color restore "+currentDateandTime);
 
-            //colorprimary
-            //tablayout.setBackgroundColor(Color.rgb(69,90,100));
+            changecolor change=new changecolor();
+            //0 for lock 1 for unlock
+            change.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,1);
         }
     }
 
+    public class changecolor extends AsyncTask<Integer,Void,Void>{
+
+        int i;
+        @Override
+        protected Void doInBackground(Integer... voids) {
+            i=voids[0];
+            try {
+                if(i==0){
+                    Thread.sleep(140);
+                }else{
+                    Thread.sleep(125);
+                }
+
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            if(i==0){
+                if (Build.VERSION.SDK_INT >= 21) {
+                    MainActivity.this.getWindow().setStatusBarColor(Color.rgb(69, 90, 100));
+                }
+                //colorprimarylight
+                tablayout.setBackgroundColor(Color.rgb(96,125,139));
+            }else{
+                if (Build.VERSION.SDK_INT >= 21) {
+                    MainActivity.this.getWindow().setStatusBarColor(Color.rgb(38, 50, 56));
+                }
+                //colorprimary
+                tablayout.setBackgroundColor(Color.rgb(69,90,100));
+            }
+            super.onPostExecute(aVoid);
+        }
+    }
 
 }

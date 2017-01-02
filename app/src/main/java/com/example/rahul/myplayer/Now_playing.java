@@ -1,7 +1,9 @@
 package com.example.rahul.myplayer;
 
 import android.Manifest;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
@@ -14,10 +16,8 @@ import android.view.View;
 
 import java.util.ArrayList;
 
-public class Now_playing extends AppCompatActivity implements ApplicationController.informactivity, View.OnLongClickListener,View.OnClickListener{
+public class Now_playing extends AppCompatActivity implements ApplicationController.informactivity{
 
-    private final int read_external=11001;
-    private boolean contextualmode=false;
 
     Toolbar toolbar;
     RecyclerView recview;
@@ -119,11 +119,10 @@ public class Now_playing extends AppCompatActivity implements ApplicationControl
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        if(contextualmode){
-            getMenuInflater().inflate(R.menu.contextual_menu,menu);
-            return true;
-        }
-        return super.onCreateOptionsMenu(menu);
+
+        getMenuInflater().inflate(R.menu.now_playing_menu,menu);
+
+        return true;
     }
 
     @Override
@@ -131,25 +130,38 @@ public class Now_playing extends AppCompatActivity implements ApplicationControl
         int id =item.getItemId();
         switch (id){
             case android.R.id.home:{
-                if(contextualmode){
-                    exitContexualMode();
-                }else {
                     finish();
+                    break;
                 }
-                return true;
+            case R.id.nowplayingmenu_removeall:{
+                AlertDialog.Builder builder =new AlertDialog.Builder(this);
+
+                builder.setMessage("Are you sure you want to clear the queue?");
+                builder.setPositiveButton(
+                        "yes",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                adapter.songs_list=new ArrayList<>();
+                                con.setMylist(new ArrayList<songs>(),"queue cleared",false);
+                                adapter.notifyDataSetChanged();
+                            }
+                        });
+
+                builder.setNegativeButton(
+                        "no",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                dialog.cancel();
+                            }
+                        });
+
+                AlertDialog dialog=builder.create();
+                dialog.show();
+
             }
             default:return super.onOptionsItemSelected(item);
         }
-    }
-
-    @Override
-    public void onBackPressed() {
-        if(contextualmode){
-            exitContexualMode();
-        }else {
-            super.onBackPressed();
-        }
-
+        return true;
     }
 
     @Override
@@ -168,26 +180,6 @@ public class Now_playing extends AppCompatActivity implements ApplicationControl
     }
 
 
-    @Override
-    public boolean onLongClick(View view) {
-        return false;
-    }
 
-    @Override
-    public void onClick(View view) {
 
-    }
-    public boolean startContextualMode(){
-        if(!contextualmode){
-            contextualmode=true;
-            getSupportActionBar().setTitle("");
-            invalidateOptionsMenu();
-        }
-        return true;
-    }
-    public void exitContexualMode(){
-        contextualmode=false;
-        //getSupportActionBar().setTitle("Now Playing");
-        //invalidateOptionsMenu();
-    }
 }

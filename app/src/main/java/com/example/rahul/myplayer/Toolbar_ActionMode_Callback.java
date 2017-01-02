@@ -89,7 +89,7 @@ public void onDestroyActionMode(ActionMode mode) {
     //recyclerView_adapter.removeSelection();// remove selection
     Fragment recyclerFragment = main.getFragment(0);//Get recycler fragment
     if (recyclerFragment != null) {
-        ((home) recyclerFragment).removeSelection();
+        //((home) recyclerFragment).removeSelection();
         ((home) recyclerFragment).setNullToActionMode();//Set action mode null
     }
     currentDateandTime = sdf.format(new Date());

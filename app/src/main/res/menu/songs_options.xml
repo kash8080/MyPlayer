@@ -4,6 +4,10 @@
         android:id="@+id/psongs_play"
         >
     </item>
+    <item android:title="Play Next"
+        android:id="@+id/psongs_playnext"
+        >
+    </item>
     <item android:title="Add to playlist"
         android:id="@+id/psongs_add_to_playlist"
         >

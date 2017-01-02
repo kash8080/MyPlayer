@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <integer name="panelheight">100</integer>
+    <integer name="animationsize">400</integer>
+</resources>

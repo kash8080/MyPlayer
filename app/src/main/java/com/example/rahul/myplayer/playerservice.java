@@ -260,7 +260,6 @@
 
     }
 
-
     //////////exoplayer controls
     public static boolean isnull() {
         if (player == null) {
@@ -522,7 +521,23 @@
         int randomno =rand.nextInt(mylist.size()-1);
         return randomno;
     }
-
+    public static void addsongstolist(ArrayList<songs> songlist){
+        mylist.addAll(songlist);
+    }
+    public void addSongToNextPos(songs s){
+        if(mylist!=null ){
+            int i=current_pos+1;
+            if(i<mylist.size()){
+                mylist.add(i,s);
+            }else{
+                mylist.add(s);
+            }
+        }else{
+            mylist=new ArrayList<>();
+            mylist.add(s);
+            current_pos=0;
+        }
+    }
     // for pausing music after removing headphones .. we will register/unregister this with play/pause
     private  BroadcastReceiver mbreceiver =new BroadcastReceiver() {
         @Override

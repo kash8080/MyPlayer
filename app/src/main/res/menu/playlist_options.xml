@@ -11,4 +11,8 @@
         android:id="@+id/Oplaylist_delete"
         >
     </item>
+    <item android:title="Rename"
+        android:id="@+id/Oplaylist_rename"
+        >
+    </item>
 </menu>
