@@ -5,8 +5,10 @@
 
     <color name="colorAccent">#FF5722</color>
     <color name="colorPrimaryLight">#607D8B</color>
-    <color name="colorSecondaryText">#212121</color>
+    <color name="colorSecondaryText">#848484</color>
     <color name="colorPrimaryText">#212121</color>
     <color name="colorWhite">#FFFFFF</color>
 
+    <color name="colortransparent">#00FFFFFF</color>
+    <color name="colorblack">#ff000000</color>
 </resources>

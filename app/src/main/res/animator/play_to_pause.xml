@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<objectAnimator
+
+    xmlns:android="http://schemas.android.com/apk/res/android"
+
+    android:propertyName="pathData"
+
+    android:valueFrom="@string/svg_triangle"
+
+    android:valueTo="@string/svg_pause"
+
+    android:duration="@integer/playpause_duration"
+
+    android:valueType="pathType" />

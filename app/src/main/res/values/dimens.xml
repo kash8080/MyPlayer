@@ -7,6 +7,7 @@
     <dimen name="activity_vertical_margin">16dp</dimen>
     <dimen name="fab_margin">16dp</dimen>
 
+    <integer name="playpause_duration">300</integer>
 
     <integer name="panelheight">37</integer>
     <integer name="animationsize">150</integer>

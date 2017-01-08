@@ -427,8 +427,9 @@
     }
     public static boolean isPlaying() {
         Log.i("bb", "isplaying");
-        if (player != null)
+        if (player != null) {
             return player.getPlayWhenReady();
+        }
         return false;
     }
     public static void setnull() {

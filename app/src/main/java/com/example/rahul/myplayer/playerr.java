@@ -1,13 +1,17 @@
 package com.example.rahul.myplayer;
 
+import android.app.ActivityOptions;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
+import android.transition.Explode;
+import android.transition.Transition;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -40,6 +44,10 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
     protected void onCreate(Bundle savedInstanceState) {
         con=new ApplicationController(this.getApplicationContext(),this);
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            Transition enterTrans=new Explode();
+            getWindow().setEnterTransition(enterTrans);
+        }
         if(savedInstanceState==null){
             super.onCreate(savedInstanceState);
         }else{
@@ -102,11 +110,9 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
 
         if(con.getCurrentPosition()==-1){
             con.setCurrent_pos(0);
-
         }
 
         Log.i("kkkk","onresume---------------");
-        Log.i("mmmm",String.valueOf(con.getCurrentPosition())+"---"+String.valueOf(con.getlist().size()));
 
         seekbarasync =new updateseekbar1();
         seekbarasync.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
@@ -223,7 +229,8 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
             }
             case R.id.play_pause :{
                 Log.i("mmmm","playpause");
-                Log.i("mmmm",String.valueOf(con.getCurrentPosition())+"---"+String.valueOf(con.getlist().size()));
+               // Log.i("mmmm",String.valueOf(con.getCurrentPosition())+"---"+String.valueOf(con.getlist().size()));
+
                 isplaying=con.isPlaying();
                 Log.i("mmmm",String.valueOf(isplaying));
 

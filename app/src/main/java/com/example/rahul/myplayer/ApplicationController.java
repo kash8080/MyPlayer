@@ -68,7 +68,7 @@ public class ApplicationController extends Application {
     public static ArrayList<songs> allsonglist ;
     private static ContentResolver resolver;
     background loadimagesforallsongs;
-
+    public static Long open_playlist_id=0L;
     ////////------------------------------------------
 
 
@@ -284,6 +284,9 @@ public class ApplicationController extends Application {
         ApplicationController.withimages=withimg;
         musicSrv.setMylist(list);
         Log.i("clist","set my list --current list of- "+currenntlistof);
+
+        //to reset current playlist or album id
+        open_playlist_id=0L;
     }
     public void addSongToList(ArrayList<songs> songlist){
         musicSrv.addsongstolist(songlist);

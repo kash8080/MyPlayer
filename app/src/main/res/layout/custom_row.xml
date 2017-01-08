@@ -19,7 +19,6 @@
     android:layout_height="50dp"
     android:layout_margin="5dp"
     android:layout_gravity="center"
-    android:src="@drawable/mp3"
     android:id="@+id/songs_image"
     />
     <FrameLayout
@@ -45,6 +44,7 @@
             android:textSize="13sp"
             android:textColor="#333333"
             android:id="@+id/songs_name"
+            android:transitionName="transitionName"
             android:maxLines="1" />
         <TextView
             android:layout_width="match_parent"

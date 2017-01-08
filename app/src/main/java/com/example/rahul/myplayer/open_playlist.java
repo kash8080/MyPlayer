@@ -1,5 +1,9 @@
 package com.example.rahul.myplayer;
 
+import android.*;
+import android.Manifest;
+import android.animation.ObjectAnimator;
+import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
@@ -8,12 +12,17 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.drawable.Animatable;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.VectorDrawable;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.provider.MediaStore;
 import android.support.design.widget.AppBarLayout;
 import android.support.design.widget.CollapsingToolbarLayout;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -22,6 +31,10 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.transition.Fade;
+import android.transition.Slide;
+import android.transition.Transition;
+import android.transition.TransitionInflater;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -30,14 +43,19 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.widget.ImageView;
 import android.widget.TextView;
+
+import com.transitionseverywhere.TransitionManager;
 
 import org.w3c.dom.Text;
 
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Random;
 
 public class open_playlist extends AppCompatActivity implements ApplicationController.informactivity ,recycler_adapter.playlist_data,View.OnClickListener{
 
@@ -46,22 +64,27 @@ public class open_playlist extends AppCompatActivity implements ApplicationContr
     recycler_adapter adapter;
     ContentResolver resolver=null;
     ArrayList<songs> list;
-    Long playlist_id;
+    Long playlist_id,current_id;
     ApplicationController con;
     String tag="tstngss";
     String tag1="tstngsss";
+    Palette.Swatch swatch;
     String method,album_art=null;
     Long album_id;
     boolean listset=false;
     Toolbar toolbar,desc_toolbar;
     String title="";
-    ImageView image,over_image;
+    ImageView image,over_image,image1,image2,image3,image4;
     TextView over_title,over_artist,numberofsongs;
     String playall="false";
     AppBarLayout appBarLayout;
     CollapsingToolbarLayout collapsingToolbarLayout;
     Bitmap bitmap;
     FloatingActionButton fab1;
+    List<String> albumartlist;
+    boolean isplaylist=false;
+    boolean multipleimages=false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.i(tag,"on create ");
@@ -70,7 +93,7 @@ public class open_playlist extends AppCompatActivity implements ApplicationContr
         if(savedInstanceState==null){
             super.onCreate(savedInstanceState);
         }else{
-            if(con.needforpermissions(android.Manifest.permission.READ_EXTERNAL_STORAGE)) {
+            if(con.needforpermissions(Manifest.permission.READ_EXTERNAL_STORAGE)) {
                 super.onCreate(new Bundle());
                 //activity trying to restore previous state which is null
                 // now because the system terminates the rocess while revoking perissions
@@ -80,24 +103,28 @@ public class open_playlist extends AppCompatActivity implements ApplicationContr
             }else{
                 super.onCreate(savedInstanceState);
             }
-
         }
-
+    doasync inback=new doasync();
         inititalise();
-        doasync inback=new doasync();
-
         try{
             method=getIntent().getStringExtra("method");
             if(method.equals("playlist")){
+                isplaylist=true;
                 playlist_id=getIntent().getLongExtra("playlist_id",0);
                 title=getIntent().getStringExtra("playlist_name");
-                get_playlist();
+                inback.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,1);
+                //get_playlist();
+                //to animate sliding of the activity
+                overridePendingTransition(R.anim.slide_in, R.anim.slide_out);
+                current_id=playlist_id;
             }else if(method.equals("album")) {
                 album_art=getIntent().getStringExtra("album_art");
                 title=getIntent().getStringExtra("album_name");
                 playall=getIntent().getStringExtra("album_playall");
                 album_id=getIntent().getLongExtra("album_id",0);
-                getalbum();
+                current_id=album_id;
+                inback.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,0);
+                //getalbum();
             }
         }catch (Exception e){}
 
@@ -106,7 +133,6 @@ public class open_playlist extends AppCompatActivity implements ApplicationContr
         numberofsongs.setText(string);
 
         if(method.equals("playlist")){
-            inback.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,2);
             adapter=new recycler_adapter(this,list,"open_playlist");
         }else{
             if(playall.equals("true")){
@@ -126,12 +152,55 @@ public class open_playlist extends AppCompatActivity implements ApplicationContr
 
         collapsingToolbarLayout.setCollapsedTitleTextColor(Color.WHITE);
         collapsingToolbarLayout.setExpandedTitleColor(Color.TRANSPARENT);
-
         fab1.setOnClickListener(this);
-
-
         appBarLayout= (AppBarLayout) findViewById(R.id.MyAppbar);
 
+        handle_enter_transition();
+        addListener_to_appbar();
+
+    }
+
+    public void handle_enter_transition(){
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            final Transition enter= TransitionInflater.from(this).inflateTransition(R.transition.fade_edited);
+            getWindow().setEnterTransition(enter);
+            enter.addListener(new Transition.TransitionListener() {
+                @Override
+                public void onTransitionStart(Transition transition) {
+                    fab1.animate().scaleX(0f).scaleY(0f).setDuration(1);
+                    rec_view.setVisibility(View.INVISIBLE);
+                }
+                @Override
+                public void onTransitionEnd(Transition transition) {
+                    fab1.animate().scaleX(1f).scaleY(1f).setDuration(100);
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                        enter.removeListener(this);
+                    }
+                    rec_view.setVisibility(View.VISIBLE);
+                    ObjectAnimator object1=ObjectAnimator.ofFloat(rec_view,"translationY",(200),0);
+                    object1.setDuration(300);
+                    object1.start();
+                }
+
+                @Override
+                public void onTransitionCancel(Transition transition) {
+
+                }
+
+                @Override
+                public void onTransitionPause(Transition transition) {
+
+                }
+
+                @Override
+                public void onTransitionResume(Transition transition) {
+
+                }
+            });
+        }
+    }
+    public void addListener_to_appbar(){
         appBarLayout.addOnOffsetChangedListener(new AppBarLayout.OnOffsetChangedListener() {
             int scrollrange=-1;
             boolean isShow=false;
@@ -142,7 +211,6 @@ public class open_playlist extends AppCompatActivity implements ApplicationContr
                     collapsingToolbarLayout.setTitle(" ");
                     scrollrange = appBarLayout.getTotalScrollRange();
                     Log.i("ddddff","scroll range="+String.valueOf(scrollrange));
-
                 }
                 if (scrollrange + verticalOffset == 0) {
                     collapsingToolbarLayout.setTitle(title);
@@ -158,6 +226,9 @@ public class open_playlist extends AppCompatActivity implements ApplicationContr
         });
     }
     public void refreshview(){
+        over_title.setText(title);
+        String string=list.size()+" songs";
+        numberofsongs.setText(string);
         Log.i("lkll","pop1");
         if(album_art!=null){
             bitmap = BitmapFactory.decodeFile(album_art);
@@ -171,14 +242,27 @@ public class open_playlist extends AppCompatActivity implements ApplicationContr
             }
         }else{
             Log.i("lkll","pop2");
+            numberofsongs.setText(title);
+            over_title.setVisibility(View.INVISIBLE);
             over_image.setVisibility(View.INVISIBLE);
         }
         // for getting colors from bitmap  using pallete lbrary
         if(bitmap!=null) {
             Palette palette = Palette.from(bitmap).generate();
-            Palette.Swatch swatch = palette.getDarkMutedSwatch();
+            swatch = palette.getDarkMutedSwatch();
             try {
+                //toolbar.setBackgroundColor(swatch.getRgb());
                 desc_toolbar.setBackgroundColor(swatch.getRgb());
+                collapsingToolbarLayout.setContentScrimColor(swatch.getRgb());
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    //to darken the status ba colour
+                    float[] hsv = new float[3];
+                    int color = swatch.getRgb();
+                    Color.colorToHSV(color, hsv);
+                    hsv[2] *= 0.6f; // value component
+                    color = Color.HSVToColor(hsv);
+                    getWindow().setStatusBarColor(color);
+                }
             } catch (Exception e) {
 
             }
@@ -193,6 +277,10 @@ public class open_playlist extends AppCompatActivity implements ApplicationContr
         toolbar=(Toolbar)findViewById(R.id.MyToolbar);
         collapsingToolbarLayout=(CollapsingToolbarLayout)findViewById(R.id.collapse_toolbar);
         image=(ImageView)findViewById(R.id.album_image);
+        image1=(ImageView)findViewById(R.id.album_image1);
+        image2=(ImageView)findViewById(R.id.album_image2);
+        image3=(ImageView)findViewById(R.id.album_image3);
+        image4=(ImageView)findViewById(R.id.album_image4);
         desc_toolbar=(Toolbar)findViewById(R.id.desc_bar);
         over_image=(ImageView)findViewById(R.id.over_image);
         over_title=(TextView)findViewById(R.id.overtitle);
@@ -205,6 +293,7 @@ public class open_playlist extends AppCompatActivity implements ApplicationContr
 
         list=new ArrayList<>();
         resolver = getContentResolver();
+
     }
 
     public void getalbum(){
@@ -287,15 +376,15 @@ public class open_playlist extends AppCompatActivity implements ApplicationContr
             }
 
         Log.i(tag,"returning list of size"+list.size());
-        setalbumartfromsongs();
+        new doasync().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,2);
         return list;
 
     }
-
     public void setalbumartfromsongs(){
+        albumartlist=new ArrayList<>();
         songs current;
         Cursor cursor;
-
+        boolean first=true;
         final String _id = MediaStore.Audio.Albums._ID;
         final String albumart = MediaStore.Audio.Albums.ALBUM_ART;
         String[] projection={ _id,albumart};
@@ -313,9 +402,14 @@ public class open_playlist extends AppCompatActivity implements ApplicationContr
                     if (cursor.moveToFirst()) {
                         path = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Albums.ALBUM_ART));
                         current.setImagepath(path);
+                        Log.i("albmart",path);
                        if(path!=null){
-                           album_art=path;
-                           return;
+                          if(first){
+                               album_art=path;
+                              first=false;
+                           }
+                           albumartlist.add(path);
+                           //return;
                        }
                     }
                     cursor.close();
@@ -323,9 +417,46 @@ public class open_playlist extends AppCompatActivity implements ApplicationContr
             }catch (Exception e){Log.i("aaaa","fffff");}
 
         }
-
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        refreshfab();
+        canrun=true;
+    }
+
+    @Override
+    public void onBackPressed() {
+
+
+        fab1.animate().scaleX(0f).scaleY(0f).setDuration(50).withEndAction(new Runnable() {
+            @Override
+            public void run() {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    //getWindow().setExitTransition(null);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        supportFinishAfterTransition();
+                    }else{
+                        finish();
+                    }
+
+                    //finish();
+                }
+            }
+        });
+
+        //super.onBackPressed();
+    }
+
+    @Override
+    protected void onPause() {
+        if(isplaylist) {
+            overridePendingTransition(R.anim.slide_in_fromleft, R.anim.slide_out_toright);
+        }
+        canrun=false;
+        super.onPause();
+    }
 
     @Override
     protected void onStop() {
@@ -339,7 +470,18 @@ public class open_playlist extends AppCompatActivity implements ApplicationContr
         switch (id){
 
             case android.R.id.home:{
-                finish();
+                fab1.animate().scaleX(0f).scaleY(0f).setDuration(50).withEndAction(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                            supportFinishAfterTransition();
+                        }else{
+                            finish();
+                        }
+
+                    }
+                });
+                //finish();
                 return true;
             }
             default:return super.onOptionsItemSelected(item);
@@ -356,6 +498,28 @@ public class open_playlist extends AppCompatActivity implements ApplicationContr
 
     }
 
+    public void refreshfab() {
+        if(current_id.equals(con.open_playlist_id)&&con.isPlaying()){
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                fab1.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.avd_play_to_pause_white));
+            }else{
+                fab1.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.pause_white));
+            }
+
+
+        }else{
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                fab1.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.avd_pause_to_play_white));
+            }else{
+                fab1.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.play_white));
+            }        }
+        Drawable drawable = fab1.getDrawable();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            ((Animatable)drawable).start();
+        }
+
+    }
+
     @Override
     public void updateprofileimage() {
 
@@ -368,12 +532,47 @@ public class open_playlist extends AppCompatActivity implements ApplicationContr
 
     public void play_all_songs(){
         con.setMylist(list,"open_playlist",false);
+        con.open_playlist_id=current_id;
         con.playsong(0);
     }
     @Override
     public void onClick(View v) {
         if(v.getId()==R.id.fab1){
-            play_all_songs();
+            //TransitionManager.beginDelayedTransition(fab1);
+
+
+            if(current_id.equals(con.open_playlist_id) && con.isPlaying()){
+                //pause the button
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    fab1.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.avd_pause_to_play_white));
+                }else{
+                    fab1.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.play_white));
+                }
+                con.pause();
+            }else if(current_id.equals(con.open_playlist_id) && !con.isPlaying()){
+                //pause the button
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    fab1.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.avd_play_to_pause_white));
+                }else{
+                    fab1.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.pause_white));
+                }
+                con.resume();
+            }else{
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    fab1.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.avd_play_to_pause_white));
+                }else{
+                    fab1.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.pause_white));
+                }
+
+                //play all songs
+                play_all_songs();
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                Drawable drawable = fab1.getDrawable();
+                ((Animatable)drawable).start();
+            }
+
         }
     }
     public class doasync extends AsyncTask<Integer,Void,Void>{
@@ -390,13 +589,118 @@ public class open_playlist extends AppCompatActivity implements ApplicationContr
             }
             return null;
         }
+        /*
 
+                <View
+                    android:layout_width="match_parent"
+                    android:background="#77263238"
+                    android:layout_height="match_parent">
+
+                </View>
+         */
         @Override
         protected void onPostExecute(Void aVoid) {
             //if album or after downloading images of playlist
             //rec_view.setAdapter(adapter);
+            if(i==2 && albumartlist.size()>=4){
+                make_multiple_images();
+            }
+            if(i==1 || i==2){
+                adapter.notifyDataSetChanged();
+            }
             refreshview();
             super.onPostExecute(aVoid);
+        }
+    }
+
+    int current_image_no=1;
+    boolean canrun=true;
+    public void make_multiple_images(){
+        image.setVisibility(View.INVISIBLE);
+        changeImages(1);
+        changeImages(2);
+        changeImages(3);
+        changeImages(4);
+        delayedimagchange del=new delayedimagchange();
+        del.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+    }
+    public void changeImages(int i){
+        switch (i){
+            case 1:{
+                set_Image(image1,albumartlist.get(getnextImageNo()));
+                current_image_no++;
+                break;
+            }
+            case 2:{
+                set_Image(image2,albumartlist.get(getnextImageNo()));
+                current_image_no++;
+                break;
+            }
+            case 3:{
+                set_Image(image3,albumartlist.get(getnextImageNo()));
+                current_image_no++;
+                break;
+            }
+            case 4:{
+                set_Image(image4,albumartlist.get(getnextImageNo()));
+                current_image_no++;
+                break;
+            }
+
+        }
+
+
+
+
+    }
+
+    public int getnextImageNo(){
+        if(current_image_no<albumartlist.size()){
+            return current_image_no;
+        }else{
+            current_image_no=1;
+            return 1;
+        }
+    }
+    public void set_Image(ImageView img ,String path){
+        if(path!=null){
+            bitmap = BitmapFactory.decodeFile(path);
+            if(bitmap!=null) {
+                img.setVisibility(View.INVISIBLE);
+                com.transitionseverywhere.TransitionManager.beginDelayedTransition(collapsingToolbarLayout,new com.transitionseverywhere.Slide());
+                img.setVisibility(View.VISIBLE);
+                img.setImageBitmap(bitmap);
+            }
+        }
+    }
+    Random rand=new Random();
+    public class delayedimagchange extends AsyncTask<Void,Void,Void>{
+    int i=3;
+        @Override
+        protected Void doInBackground(Void... voids) {
+            while (canrun) {
+                try {
+                    Log.i("bckg","doinback");
+                    Thread.sleep(2000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                publishProgress();
+
+            }
+            return null;
+        }
+
+        @Override
+        protected void onProgressUpdate(Void... values) {
+            super.onProgressUpdate(values);
+            int t=rand.nextInt(4);
+            while(t==i){
+                t=rand.nextInt(4);
+            }
+            i=t;
+            changeImages(i+1);
+
         }
     }
 

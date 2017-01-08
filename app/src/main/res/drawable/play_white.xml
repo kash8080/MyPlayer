@@ -1,9 +1,16 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-        android:width="48dp"
-        android:height="48dp"
-        android:viewportWidth="24.0"
-        android:viewportHeight="24.0">
-    <path
-        android:fillColor="#FFffffff"
-        android:pathData="M8,5v14l11,-7z"/>
+    android:width="32dp"
+    android:height="32dp"
+    android:viewportWidth="26.0"
+    android:viewportHeight="26.0">
+
+    <group android:name="play_group_white"
+        android:pivotX="13"
+        android:pivotY="13"
+        >
+        <path
+            android:name="avd_play_white"
+            android:fillColor="@color/colorWhite"
+            android:pathData="M8,2 L8,26 26,14 8,2 M18,0 L18,0 18,0 18,0"/>
+    </group>
 </vector>

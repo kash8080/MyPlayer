@@ -1,6 +1,22 @@
 <resources>
     <string name="app_name">MyPlayer</string>
 
+    <!-- for play pause animations capitals are for absolute pixels ,x,y represents coordinates,small letters define relative
+    pixels,M for putting pen to absolute location,L for straight lines-->
+    <string name="svg_triangle">
+        M5,2 L5,26 24,14 5,2 M18,0 L18,0 18,0 18,0
+    </string>
+    <string name="svg_pause">
+       M5,2 L5,24 10,24 10,2 M16,2 L16,24 21,24 21,2
+    </string>
+    <string name="svg_triangle_white">
+        M8,2 L8,26 26,14 8,2 M18,0 L18,0 18,0 18,0
+    </string>
+    <string name="svg_pause_white">
+       M5,2 L5,24 11,24 11,2 M15,2 L15,24 21,24 21,2
+    </string>
+
+
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
 
@@ -70,6 +86,8 @@
 
     //facebook key
     <string name="facebook_app_id">847359605401098</string>
+    <string name="Search">Search</string>
+    <string name="search_hint">Search songs</string>
 
 
 </resources>

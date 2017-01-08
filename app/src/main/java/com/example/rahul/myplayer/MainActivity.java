@@ -2,11 +2,13 @@ package com.example.rahul.myplayer;
 
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
+import android.app.ActivityOptions;
 import android.app.AlertDialog;
 
 import android.Manifest;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.app.SearchManager;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -17,6 +19,9 @@ import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.drawable.Animatable;
+import android.graphics.drawable.AnimatedVectorDrawable;
+import android.graphics.drawable.Drawable;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -25,9 +30,12 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.provider.MediaStore;
+import android.provider.SearchRecentSuggestions;
+import android.support.design.widget.AppBarLayout;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.TabLayout;
+import android.support.graphics.drawable.AnimatedVectorDrawableCompat;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
@@ -36,11 +44,16 @@ import android.support.v4.app.FragmentTransaction;
 
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.TaskStackBuilder;
+import android.support.v4.content.ContextCompat;
+import android.support.v4.view.MenuItemCompat;
 import android.support.v4.view.ViewPager;
 
+import android.support.v7.app.AppCompatDelegate;
 import android.support.v7.widget.CardView;
+import android.support.v7.widget.SearchView;
 import android.text.InputType;
 import android.text.Layout;
+import android.transition.TransitionInflater;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -74,6 +87,11 @@ import com.nostra13.universalimageloader.core.DisplayImageOptions;
 import com.nostra13.universalimageloader.core.ImageLoader;
 import com.nostra13.universalimageloader.core.assist.ImageScaleType;
 import com.sothree.slidinguppanel.SlidingUpPanelLayout;
+import com.squareup.picasso.NetworkPolicy;
+import com.squareup.picasso.Picasso;
+import com.transitionseverywhere.Slide;
+import com.transitionseverywhere.TransitionManager;
+import com.transitionseverywhere.TransitionSet;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -83,9 +101,12 @@ import java.util.Date;
 import java.util.concurrent.Executor;
 import java.util.zip.Inflater;
 
+import de.hdodenhof.circleimageview.CircleImageView;
+
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener,
         ViewPager.OnPageChangeListener,View.OnClickListener,recycler_adapter.adaptr,
-        ApplicationController.informactivity,SeekBar.OnSeekBarChangeListener {
+        ApplicationController.informactivity,SeekBar.OnSeekBarChangeListener,SlidingUpPanelLayout.PanelSlideListener,
+        SearchView.OnQueryTextListener{
 
     private final int read_external=11001;
     int menuid = 0;
@@ -105,7 +126,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     Toolbar card;
     AlertDialog.Builder builder;
     TextView nav_name;
-
+    AppBarLayout appBarLayout;
     String path;
     Bitmap bitmap;
     SharedPreferences sharedPref;
@@ -135,17 +156,20 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     ProfileTracker profileTracker;
     CoordinatorLayout coordinatorlayout;
 
+/*
+    static {
+        AppCompatDelegate.setCompatVectorFromResourcesEnabled(true);
+    }*/
     ///------ --------- -------------  -------------   -------------
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.i("llllp", "oncreate");
         con = new ApplicationController(this.getApplicationContext(), this);
-
         if(savedInstanceState==null){
             super.onCreate(savedInstanceState);
         }else{
-            if(con.needforpermissions(android.Manifest.permission.READ_EXTERNAL_STORAGE)) {
+            if(con.needforpermissions(Manifest.permission.READ_EXTERNAL_STORAGE)) {
                 super.onCreate(new Bundle());
                 //activity trying to restore previous state which is null
                 // now because the system terminates the rocess while revoking perissions
@@ -154,9 +178,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             }
 
         }
+
        //overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
         setContentView(R.layout.activity_main);
-
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            getWindow().setExitTransition(TransitionInflater.from(this).inflateTransition(R.transition.fade_edited));
+        }
         //initialise everything
         initialise();
         setSupportActionBar(toolbar);
@@ -186,7 +213,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         //navigation header
         View v=navigationView.getHeaderView(0);
-        profileimage=(de.hdodenhof.circleimageview.CircleImageView)v.findViewById(R.id.profile_image);
+        profileimage=(CircleImageView)v.findViewById(R.id.profile_image);
         nav_name=(TextView)v.findViewById(R.id.nav_name) ;
 
         //for facebook
@@ -257,6 +284,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         builder = new AlertDialog.Builder(this);
         toolbar = (Toolbar) findViewById(R.id.toolbar);
         coordinatorlayout=(CoordinatorLayout)findViewById(R.id.main_content);
+        appBarLayout=(AppBarLayout) findViewById(R.id.MyAppbar);
+
         //sliding player setup
         image = (ImageView) findViewById(R.id.bar_image);
         slider=(SlidingUpPanelLayout)findViewById(R.id.sliding_layout);
@@ -280,6 +309,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         card.setOnClickListener(this);
         button.setOnClickListener(this);
 
+        slider.addPanelSlideListener(this);
     }
 
     public Fragment getFragment(int position){
@@ -305,11 +335,19 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             Log.i("cccc", "menuid=2");
             getMenuInflater().inflate(R.menu.playlist, menu);
         } else {
+// Associate searchable configuration with the SearchView
+           SearchManager searchManager =(SearchManager) getSystemService(Context.SEARCH_SERVICE);
 
-                Log.i("cccc", "menuid!=2");
                 getMenuInflater().inflate(R.menu.main, menu);
+                MenuItem item=menu.findItem(R.id.search_view);
+                SearchView searchView=(SearchView) MenuItemCompat.getActionView(item);
+                searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
+
+           // SearchView.SearchAutoComplete searchAutoComplete = (SearchView.SearchAutoComplete) searchView.findViewById(android.support.v7.appcompat.R.id.search_src_text);
+            //searchAutoComplete.setHintTextColor(ContextCompat.getColor(this,R.color.colorSecondaryText));
 
         }
+
         return super.onCreateOptionsMenu(menu);
     }
 
@@ -352,6 +390,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             return true;
         }
 
+        if (id == R.id.clear_history) {
+            SearchRecentSuggestions suggestions = new SearchRecentSuggestions(this,
+                    MySuggestionProvider.AUTHORITY, MySuggestionProvider.MODE);
+            suggestions.clearHistory();
+            return true;
+        }
         return false;
     }
 
@@ -374,7 +418,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             intent.putExtra("name", songname.getText());
             intent.putExtra("artist", artistname.getText());
             intent.putExtra("path", path);
+           /* if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                Transition enterTrans=new Explode();
+                getWindow().setExitTransition(enterTrans);
+                startActivity(intent,ActivityOptions.makeSceneTransitionAnimation(MainActivity.this).toBundle());
+            }else {*/
             startActivity(intent);
+           // }
         } else if (id == R.id.nav_queue) {
             startActivity(new Intent(this, Now_playing.class));
        // } else if (id == R.id.nav_share) {
@@ -427,12 +477,18 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     public void setbutton(boolean a) {
+        if(slider.getPanelState()== SlidingUpPanelLayout.PanelState.EXPANDED){
+            return;
+        }
         isplaying = a;
         if (a) {
             button.setImageResource(R.drawable.pause);
+
         } else {
-            button.setImageResource(R.drawable.play);
+           button.setImageResource(R.drawable.play);
+
         }
+        seticon();
     }
 
     public void setcard(boolean a, songs song) {
@@ -464,9 +520,26 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     public void seticon(){
         if(isplaying){
             Log.i("llll","isplaying");
-            play_pause.setImageResource(R.drawable.pause_white);
+            //play_pause.setImageResource(R.drawable.pause_white);
 
-        }else play_pause.setImageResource(R.drawable.play_white);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                play_pause.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.avd_play_to_pause_white));
+                Drawable drawable = play_pause.getDrawable();
+                ((Animatable) drawable).start();
+            }else{
+                play_pause.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.pause_white));
+            }
+
+        }else{
+            //play_pause.setImageResource(R.drawable.play_white);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                play_pause.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.avd_pause_to_play_white));
+                Drawable drawable = play_pause.getDrawable();
+                ((Animatable) drawable).start();
+            }else{
+                play_pause.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.play_white));
+            }
+        }
 
     }
     public void refreshview(){
@@ -617,6 +690,40 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             seekBar.setProgress(Integer.parseInt(String.valueOf(con.getcurrentplaybacktime()/1000L)));
             Log.i("kkkk","updateseekbar");
         }
+    }
+
+    @Override
+    public void onPanelSlide(View panel, float slideOffset) {
+
+    }
+
+    @Override
+    public void onPanelStateChanged(View panel, SlidingUpPanelLayout.PanelState previousState, SlidingUpPanelLayout.PanelState newState) {
+        if(newState.equals(SlidingUpPanelLayout.PanelState.EXPANDED)){
+
+            button.setVisibility(View.INVISIBLE);
+           /* button.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.queue));
+            TransitionManager.beginDelayedTransition(card);
+            button.setVisibility(View.VISIBLE);*/
+        }else if(newState.equals(SlidingUpPanelLayout.PanelState.COLLAPSED)){
+            button.setVisibility(View.VISIBLE);
+                if(con.isPlaying()){
+                    Log.i("llll","isplaying");
+                    button.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.pause));
+                }else{
+                    button.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.play));
+                }
+        }
+    }
+
+    @Override
+    public boolean onQueryTextSubmit(String query) {
+        return false;
+    }
+
+    @Override
+    public boolean onQueryTextChange(String newText) {
+        return false;
     }
 
     public class updateseekbar1 extends AsyncTask<Void,Void,Void>{
@@ -796,21 +903,43 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         switch (id) {
             case R.id.controller_bar: {
 
-                Intent intent = new Intent(this, playerr.class);
-                startActivity(intent);
+                //Intent intent = new Intent(this, playerr.class);
+                //startActivity(intent);
+                if(slider.getPanelState()== SlidingUpPanelLayout.PanelState.COLLAPSED){
+                    slider.setPanelState(SlidingUpPanelLayout.PanelState.EXPANDED);
+                }
                 return;
             }
 
             case R.id.bar_button: {
+                if(slider.getPanelState()== SlidingUpPanelLayout.PanelState.EXPANDED){
+
+                    return;
+                }
                 if (isplaying) {
                     isplaying = false;
                     con.pause();
-                    button.setImageResource(R.drawable.play);
+                    //setbutton(false);
+                    //button.setImageResource(R.drawable.play);
+                    button.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.avd_pause_to_play));
+                    Drawable drawable = button.getDrawable();
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        ((Animatable) drawable).start();
+                    }
+                    seticon();
                 } else {
                     isplaying = true;
                     con.resume();
-                    button.setImageResource(R.drawable.pause);
+                    //setbutton(true);
+                    //button.setImageResource(R.drawable.pause);
+                    button.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.avd_play_to_pause));
+                    Drawable drawable = button.getDrawable();
 
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        ((Animatable) drawable).start();
+                    }
+                    seticon();
                 }
                 return;
             }
@@ -912,16 +1041,16 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     protected void onResume() {
         Log.i("llllp","onresume");
         super.onResume();
+        /*
         //animation for tablayout
         //AnimatorSet set=new AnimatorSet();
-
         int size=this.getResources().getInteger(R.integer.animationsize);
         ObjectAnimator object1=ObjectAnimator.ofFloat(tablayout,"translationY",-size,0);
         object1.setDuration(500);
         object1.start();
         //set.playTogether(object1);
         //set.start();
-
+*/
         //for facebook
         tokentracker.startTracking();
         profileTracker.startTracking();

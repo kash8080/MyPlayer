@@ -7,7 +7,7 @@ import android.graphics.BitmapFactory;
  * Created by Rahul on 14-07-2016.
  */
 public class songs {
-    private String path="--";
+    private String path="";
     private String name="--";
     private String artist="--";
     private String image="bb";

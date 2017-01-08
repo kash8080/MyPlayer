@@ -48,8 +48,7 @@
                     android:background="#00555555"
                     android:layout_marginEnd="18dp"
                     android:layout_height="60dp"
-
-                    >
+                    android:layout_marginRight="18dp">
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
@@ -133,7 +132,8 @@
                             android:layout_marginEnd="20dp"
                             android:layout_gravity="center"
                             android:background="#00ffffff"
-                            />
+                            android:layout_marginLeft="20dp"
+                            android:layout_marginRight="20dp" />
                         <ImageButton
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
