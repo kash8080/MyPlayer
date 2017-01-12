@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.example.rahul.myplayer">
+    package="com.androidplay.rahul.myplayer">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
@@ -10,7 +10,7 @@
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
     <application
-        android:name=".ApplicationController"
+        android:name="com.androidplay.rahul.myplayer.ApplicationController"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -18,8 +18,8 @@
         android:theme="@style/AppTheme">
 
         <activity
-            android:name=".MainActivity"
-            android:theme="@style/AppTheme">
+            android:name="com.androidplay.rahul.myplayer.MainActivity"
+            >
             <meta-data
                 android:name="android.app.default_searchable"
                 android:value=".SearchableActivity" />
@@ -27,12 +27,12 @@
         </activity>
 
         <activity
-            android:name=".open_playlist"
+            android:name="com.androidplay.rahul.myplayer.open_playlist"
             android:theme="@style/AppTheme" />
 
         <activity
-            android:name=".playerr"
-            android:parentActivityName=".MainActivity"
+            android:name="com.androidplay.rahul.myplayer.playerr"
+            android:parentActivityName="com.androidplay.rahul.myplayer.MainActivity"
             android:theme="@style/AppTheme">
             <intent-filter>
                 <action android:name="android.intent.action.second_activity" />
@@ -42,15 +42,8 @@
         </activity>
 
         <activity
-            android:name=".Now_playing"
+            android:name="com.androidplay.rahul.myplayer.Now_playing"
             android:theme="@style/AppTheme" />
-
-        <activity
-            android:name="com.facebook.FacebookActivity"
-            android:configChanges="keyboard|keyboardHidden|screenLayout|screenSize|orientation"
-            android:label="@string/app_name"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar"
-            tools:replace="android:theme" />
 
         <meta-data
             android:name="com.facebook.sdk.ApplicationId"
@@ -63,7 +56,7 @@
         </receiver>
 
         <service
-            android:name=".playerservice"
+            android:name="com.androidplay.rahul.myplayer.playerservice"
             android:exported="false"
             android:stopWithTask="false">
             <intent-filter>
@@ -72,12 +65,12 @@
         </service>
 
         <activity
-            android:name=".settings"
+            android:name="com.androidplay.rahul.myplayer.settings"
             android:theme="@style/AppTheme">
         </activity>
 
         <activity
-            android:name=".PermissionActivity"
+            android:name="com.androidplay.rahul.myplayer.PermissionActivity"
             android:theme="@style/AppTheme"
             android:label="@string/app_name">
             <intent-filter>
@@ -92,7 +85,7 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".SearchableActivity"
+        <activity android:name="com.androidplay.rahul.myplayer.SearchableActivity"
             android:theme="@style/AppTheme"
             android:launchMode="singleTop"
             >
@@ -106,8 +99,8 @@
         </activity>
 
         <provider
-            android:name=".MySuggestionProvider"
-            android:authorities="com.example.rahul.myplayer.MySuggestionProvider" />
+            android:name="com.androidplay.rahul.myplayer.MySuggestionProvider"
+            android:authorities="com.androidplay.rahul.myplayer.MySuggestionProvider" />
 
     </application>
 

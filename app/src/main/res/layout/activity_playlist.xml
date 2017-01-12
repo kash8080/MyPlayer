@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#ffffff"
-    tools:context="com.example.rahul.myplayer.playlist">
+    tools:context="com.androidplay.rahul.myplayer.playlist">
 
     <android.support.v7.widget.RecyclerView
         android:layout_width="match_parent"

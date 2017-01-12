@@ -10,7 +10,7 @@
         >
         <path
             android:name="avd_play_white"
-            android:fillColor="@color/colorWhite"
+            android:fillColor="#ffffff"
             android:pathData="M8,2 L8,26 26,14 8,2 M18,0 L18,0 18,0 18,0"/>
     </group>
 </vector>

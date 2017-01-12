@@ -7,4 +7,12 @@
         android:title="Push Notifications"
         android:defaultValue="false" />
 
+    <ListPreference
+        android:key="THEME_LIST"
+        android:title="App Theme"
+        android:summary="Change App theme"
+        android:defaultValue="1"
+        android:dialogTitle="Choose a Theme"
+        android:entries="@array/theme_entries"
+        android:entryValues="@array/theme_values" />
 </PreferenceScreen>

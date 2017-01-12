@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    tools:context="com.example.rahul.myplayer.player_n">
+    tools:context="com.androidplay.rahul.myplayer.playerr">
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent">

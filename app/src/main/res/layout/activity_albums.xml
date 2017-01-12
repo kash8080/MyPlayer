@@ -4,15 +4,22 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="4dp"
-
-    tools:context="com.example.rahul.myplayer.Albums">
+    tools:context="com.androidplay.rahul.myplayer.Albums">
 
     <android.support.v7.widget.RecyclerView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:scrollbars="vertical"
+        android:layout_marginEnd="10dp"
         android:background="@color/colorWhite"
-        android:id="@+id/recview_albums">
+        android:id="@+id/recview_albums"
+        android:layout_marginRight="10dp">
 
     </android.support.v7.widget.RecyclerView>
+
+    <xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScroller
+        android:id="@+id/fast_scroller1"
+        android:layout_width="20dp"
+        android:layout_height="match_parent"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentRight="true" />
 </RelativeLayout>

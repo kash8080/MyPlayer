@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/colorPrimaryDark"
-    tools:context="com.example.rahul.myplayer.launcher">
+    tools:context="com.androidplay.rahul.myplayer.launcher">
 
 
     <ImageView

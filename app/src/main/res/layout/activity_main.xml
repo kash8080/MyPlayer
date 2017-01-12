@@ -30,10 +30,10 @@
             android:layout_height="35dp"
             android:layout_gravity="bottom"
             >
-            <View
+           <!-- <View
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="#ffffffff"
+                android:background="#00ffffff"
                 >
             </View>
          <com.facebook.login.widget.LoginButton
@@ -42,8 +42,10 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
              android:layout_marginBottom="5dp"
+             android:visibility="invisible"
+             android:enabled="false"
              android:layout_marginTop="2dp"
-           />
+           />-->
 
         </FrameLayout>
 

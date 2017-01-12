@@ -28,6 +28,7 @@
         android:layout_gravity="bottom|left"
         android:textColor="#ffffff"
         android:textStyle="bold"
+        android:text="Welcome"
         android:textAllCaps="true"
         android:layout_marginBottom="20dp"
         android:layout_marginLeft="90dp"

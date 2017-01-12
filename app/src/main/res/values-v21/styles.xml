@@ -13,9 +13,9 @@
         <!--  It should be true otherwise action mode will not overlay toolbar -->
         <item name="windowActionModeOverlay">true</item>
  
-        <!--  For Custom Action Mode Background Color/Drawable -->
+        <!--  For Custom Action Mode Background Color/Drawable -->
         <item name="actionModeBackground">@color/colorPrimaryLight</item>
-        <item name="actionBarPopupTheme">@style/ThemeOverlay.AppCompat.Light</item>
+        <item name="actionBarPopupTheme">@style/ThemeOverlay.AppCompat.Light</item>
 
         <!-- for fast enter transitions -->
         <item name="android:windowAllowEnterTransitionOverlap">true</item>
@@ -33,5 +33,46 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
     </style>
+
+    <style name="AppTheme.Purple">
+        <item name="colorPrimary">@color/colorPrimarypurple</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDarkpurple</item>
+        <item name="colorAccent">@color/colorAccentpurple</item>
+        <!--  For Custom Action Mode Background Color/Drawable -->
+                <item name="actionModeBackground">@color/colorPrimaryLightpurple</item>
+
+    </style>
+
+    <style name="AppTheme.Red">
+        <item name="colorPrimary">@color/colorPrimaryred</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDarkred</item>
+        <item name="colorAccent">@color/colorAccentred</item>
+        <!--  For Custom Action Mode Background Color/Drawable -->
+                <item name="actionModeBackground">@color/colorPrimaryLightred</item>
+
+    </style>
+
+    <style name="AppTheme.orange">
+        <item name="colorPrimary">@color/colorPrimaryorange</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDarkorange</item>
+        <item name="colorAccent">@color/colorAccentorange</item>
+        <!--  For Custom Action Mode Background Color/Drawable -->
+                <item name="actionModeBackground">@color/colorPrimaryLightorange</item>
+    </style>
+    <style name="AppTheme.indigo">
+        <item name="colorPrimary">@color/colorPrimaryindigo</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDarkindigo</item>
+        <item name="colorAccent">@color/colorAccentindigo</item>
+        <item name="actionModeBackground">@color/colorPrimaryLightindigo</item>
+
+    </style>
+    <style name="AppTheme.brown">
+        <item name="colorPrimary">@color/colorPrimarybrown</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDarkbrown</item>
+        <item name="colorAccent">@color/colorAccentbrown</item>
+        <item name="actionModeBackground">@color/colorPrimaryLightbrown</item>
+
+    </style>
+
 
 </resources>

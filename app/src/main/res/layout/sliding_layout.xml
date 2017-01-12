@@ -80,31 +80,20 @@
             android:id="@+id/player_image"
             android:src="@drawable/mp3full"
             android:background="#555555"
-
             />
         <View
-            android:layout_width="4dp"
-            android:layout_height="551dp"
-            android:background="#55607D8B"
+            android:layout_width="match_parent"
+            android:id="@+id/control_back_colour"
+            android:layout_height="match_parent"
             >
         </View>
-
-        <android.support.v7.widget.Toolbar
-            android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:background="#00444444"
-            android:id="@+id/player_toolbar"
-            android:theme="@style/toolbar"
-            app:popupTheme="@style/AppTheme.PopupOverlay"
-            >
-        </android.support.v7.widget.Toolbar>
-
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="120dp"
             android:layout_gravity="bottom"
-            android:background="#00555555"
             android:orientation="vertical"
+            android:id="@+id/grad_bottom_slide"
+
             >
             <android.support.v7.widget.Toolbar
                 android:layout_width="match_parent"
