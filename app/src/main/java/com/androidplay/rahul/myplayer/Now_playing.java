@@ -19,7 +19,7 @@ import java.util.ArrayList;
 
 import xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScroller;
 
-public class Now_playing extends AppCompatActivity implements ApplicationController.informactivity{
+public class Now_playing extends AppCompatActivity{
 
 
     Toolbar toolbar;
@@ -185,20 +185,6 @@ public class Now_playing extends AppCompatActivity implements ApplicationControl
         return true;
     }
 
-    @Override
-    public void playnextsong() {
-
-    }
-
-    @Override
-    public void refresh() {
-
-    }
-
-    @Override
-    public void updateprofileimage() {
-
-    }
 
 
 

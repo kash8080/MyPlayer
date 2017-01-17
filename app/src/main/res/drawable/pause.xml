@@ -9,7 +9,7 @@
     >
     <path
         android:name="avd_pause"
-        android:fillColor="@color/colorAccent"
+        android:fillColor="#FF5722"
         android:pathData="M5,2 L5,24 10,24 10,2 M16,2 L16,24 21,24 21,2"/>
     </group>
     <!--M6,19h4L10,5L6,5v14zM14,5v14h4L18,5h-4z-->

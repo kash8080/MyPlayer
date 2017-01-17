@@ -145,6 +145,7 @@
             <android.support.v7.widget.Toolbar
                 android:background="#00555555"
                 android:layout_width="match_parent"
+                android:id="@+id/bottom_control_toolbar"
                 android:layout_height="60dp"
                 >
                 <LinearLayout

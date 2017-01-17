@@ -268,269 +268,291 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
                 //this prevents song playing on double tapping in actionmode
                 return;
             }
-            Log.i("clickedd","onClick");
             if(v.getId()==R.id.options){
                 if(id.equals("song") || id.equals("open_album")|| id.equals("allsongs")){
-                    popup=new PopupMenu(context,v);
-                    popup.getMenuInflater().inflate(R.menu.songs_options,popup.getMenu());
-                    popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-                        public boolean onMenuItemClick(MenuItem item) {
-                                int ids=item.getItemId();
-                            switch (ids){
-                                case R.id.psongs_play :{
-                                    if(id.equals("allsongs")){
-                                        con.setMylist(con.allsonglist,"allsongs",true);
-                                    }else {
-                                        con.setMylist(songs_list, id, imagesset);
-                                    }
-
-                                    con.playsong(getLayoutPosition());
-                                    if(id.equals("song")|| id.equals("allsongs")  ) {
-                                        face.setcardss(con.getsong());
-
-                                    }
-                                    return true;
-                                }
-                                case R.id.psongs_add_to_playlist: {
-                                   PopupMenu popup1=new PopupMenu(context,v);
-                                   /// getplaylist to populate popupmenu
-                                    Log.i("popo","addtoplaylist");
-                                    final ArrayList<songs> list;
-                                    list=get_playlist();
-                                    for(songs song :list ){
-                                        popup1.getMenu().add(song.getName());
-                                        Log.i("popo",song.getName());
-
-                                    }
-
-                                    popup1.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-                                        public boolean onMenuItemClick(MenuItem item) {
-                                           for(songs playlist : list){
-                                               if(playlist.getName().equals(item.getTitle())) {
-                                                   if (playlist.getId().equals(0L)) {
-                                                        // add new playlist and add song to tht playlist
-                                                       addnewPlaylistwithSongs(songs_list.get(getLayoutPosition()));
-                                                   } else {
-                                                       addTracksToPlaylist(playlist.getId(), songs_list.get(getLayoutPosition()));
-                                                       Toast.makeText(context, "added " + songs_list.get(getLayoutPosition()).getName() + " to " + playlist.getName(), Toast.LENGTH_LONG).show();
-                                                   }
-                                               }
-                                           }
-                                            return true;
-                                        }
-                                    });
-                                    popup1.show();
-                                    return true;
-                                }
-                                case R.id.psongs_delete: {
-                                    builder.setMessage("are you sure you want to delete "+songs_list.get(getLayoutPosition()).getName());
-                                    builder.setCancelable(true) ;
-                                    builder.setPositiveButton(
-                                            "yes",
-                                            new DialogInterface.OnClickListener() {
-                                                public void onClick(DialogInterface dialog, int id) {
-                                                    deletesong(songs_list.get(getLayoutPosition()).getId());
-
-                                                }
-                                            });
-
-                                    builder.setNegativeButton(
-                                            "no",
-                                            new DialogInterface.OnClickListener() {
-                                                public void onClick(DialogInterface dialog, int id) {
-                                                    dialog.cancel();
-                                                }
-                                            });
-
-                                    AlertDialog alert = builder.create();
-                                    alert.show();
-                                    return true;
-                                }
-                                case R.id.psongs_playnext: {
-                                    con.addSongtoNextPos(songs_list.get(getLayoutPosition()));
-                                    return true;
-                                }
-                            }
-                            return true;
-                        }
-                    });
-                    popup.show();
-
-
+                    handleSongsOptions(v);
                 }else if(id.equals("playlist")){
                     /// ppopup menu for playlists options
-                    popup=new PopupMenu(context,v);
-                    popup.getMenuInflater().inflate(R.menu.playlist_options,popup.getMenu());
-                    popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-                        public boolean onMenuItemClick(MenuItem item) {
-                            if(item.getItemId()==R.id.Oplaylist_open){
-                                    openplaylist();
-                            } else if(item.getItemId()==R.id.Oplaylist_delete){
-                               builder.setMessage("Are you sure you want to delete : "+songs_list.get(getLayoutPosition()).getName());
-                                builder.setCancelable(true);
-                                builder.setPositiveButton(
-                                        "yes",
-                                        new DialogInterface.OnClickListener() {
-                                            public void onClick(DialogInterface dialog, int id) {
-                                                deleteplaylist(songs_list.get(getLayoutPosition()).getId());
-                                                songs_list.remove(getLayoutPosition());
-                                                notifyItemRemoved(getLayoutPosition());
-                                            }
-                                        });
-
-                                builder.setNegativeButton(
-                                        "no",
-                                        new DialogInterface.OnClickListener() {
-                                            public void onClick(DialogInterface dialog, int id) {
-                                                dialog.cancel();
-                                            }
-                                        });
-
-                                AlertDialog alert = builder.create();
-                                alert.show();
-
-                            }
-                            else if(item.getItemId()==R.id.Oplaylist_rename){
-                                builder.setTitle("Playlist name");
-                                builder.setCancelable(true);
-                                // Set up the input
-                                final EditText input = new EditText(context);
-                                input.setInputType(InputType.TYPE_CLASS_TEXT );
-                                builder.setView(input);
-                                builder.setPositiveButton(
-                                        "Rename",
-                                        new DialogInterface.OnClickListener() {
-                                            public void onClick(DialogInterface dialog, int id) {
-                                                String str=input.getText().toString();
-                                                int pos=getLayoutPosition();
-                                                Long playlistid=songs_list.get(pos).getId();
-                                                ContentValues values = new ContentValues();
-                                                values.put(MediaStore.Audio.Playlists.NAME,str);
-                                                songs_list.get(pos).setName(str);
-                                                resolver.update(MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI,
-                                                        values, "_id=" + playlistid, null);
-                                                notifyItemChanged(pos);
-                                            }
-                                        });
-
-                                builder.setNegativeButton(
-                                        "Cancel",
-                                        new DialogInterface.OnClickListener() {
-                                            public void onClick(DialogInterface dialog, int id) {
-                                                dialog.cancel();
-                                            }
-                                        });
-
-                                AlertDialog alert = builder.create();
-                                alert.show();
-                            }
-                            return true;
-                        }
-                    });
-                    popup.show();
+                    handlePlaylistOptions(v);
                 }else if(id.equals("open_playlist")){
                     /// ppopup menu for playlists options
-                    popup=new PopupMenu(context,v);
-                    popup.getMenuInflater().inflate(R.menu.open_playlist,popup.getMenu());
-                    popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-                        public boolean onMenuItemClick(MenuItem item) {
-                            if(item.getItemId()==R.id.open_Remove){
-                                // remove song from playlist ... plylst is the interface with activity openplaylist
-                                removesongfromplaylist(songs_list.get(getLayoutPosition()).getId(),plylst.getplaylist_id());
-
-                            } else if(item.getItemId()==R.id.open_play){
-                                con.setMylist(songs_list,"open_playlist",imagesset);
-
-                                con.playsong(getLayoutPosition());
-                            }
-                            return true;
-                        }
-                    });
-                    popup.show();
+                    handle_openPlaylist_options(v);
                 }else if(id.equals("now_playing")){
                     /// ppopup menu for playlists options
-                    popup=new PopupMenu(context,v);
-                    popup.getMenuInflater().inflate(R.menu.now_playing_options,popup.getMenu());
-                    popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-                        public boolean onMenuItemClick(MenuItem item) {
-                            if(item.getItemId()==R.id.now_playing_play){
-                                // play song
-                                    con.playsong(getLayoutPosition());
-                            } else if(item.getItemId()==R.id.now_playing_removefromqueue){
-                                // remove from queue i.e from arreylist of service
-                                con.remove_song(getLayoutPosition());
-                                notifyItemRemoved(getLayoutPosition());
-                            }
-                            return true;
-                        }
-                    });
-                    popup.show();
+                    handle_nowPlaying_options(v);
                 }
 
-
             }else if(v.getId()==R.id.album_options) {
-
-                popup=new PopupMenu(context,v);
-                popup.getMenuInflater().inflate(R.menu.album,popup.getMenu());
-                popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-                    public boolean onMenuItemClick(MenuItem item) {
-                        if(item.getItemId()==R.id.album_open){
-                           open_album("false",v);
-                        } else if(item.getItemId()==R.id.album_playall){
-                            open_album("true",v);
-
-                        }
-                        return true;
-                    }
-                });
-                popup.show();
-
-
+                handle_album_options(v);
             }else if(v.getId()==R.id.album_image){
                 open_album("false",v);
             }else
             // whole item click for song selection
-                if(id.equals("song")|| id.equals("allsongs")){
-                    if(!ApplicationController.currenntlistof.equals("song") || !con.withimages) {
-                        con.setMylist(songs_list,"song",imagesset);
-                    }
-                    con.playsong(getLayoutPosition());
-                    if(id.equals("song") ||id.equals("playlist") ||id.equals("album") || id.equals("allsongs")) {
-                        face.setcardss(con.getsong());
-
-                    }
-                }else if(id.equals("playlist")){
-                    openplaylist();
-
-                }else if(id.equals("now_playing")){
-                    //con.setsong(getLayoutPosition());
-                   // con.playsong();
-
-                    //---------con.setMylist(songs_list);
-
-                    con.playsong(getLayoutPosition());
-
-                }else if(id.equals("open_album")){
-                    //con.setsong(getLayoutPosition());
-                    // con.playsong();
-                        con.setMylist(songs_list,"open_album",imagesset);
-
-                    con.playsong(getLayoutPosition());
-
-                }else if(id.equals("open_playlist")){
-                    //con.setsong(getLayoutPosition());
-                    // con.playsong();
-                        con.setMylist(songs_list,"open_playlist",imagesset);
-
-                    con.playsong(getLayoutPosition());
-
-                }
+                handleClick(v);
             }
 
         /////-----------
+        public void handleClick(View v){
+            if(id.equals("song")|| id.equals("allsongs")){
+                if(!ApplicationController.currenntlistof.equals("song") || !con.withimages) {
+                    con.setMylist(songs_list,"song",imagesset);
+                }
+                con.playsong(getLayoutPosition());
+                if(id.equals("song") ||id.equals("playlist") ||id.equals("album") || id.equals("allsongs")) {
+                    face.setcardss(con.getsong());
+
+                }
+            }else if(id.equals("playlist")){
+                openplaylist();
+
+            }else if(id.equals("now_playing")){
+                //con.setsong(getLayoutPosition());
+                // con.playsong();
+
+                //---------con.setMylist(songs_list);
+
+                con.playsong(getLayoutPosition());
+
+            }else if(id.equals("open_album")){
+                //con.setsong(getLayoutPosition());
+                // con.playsong();
+                con.setMylist(songs_list,"open_album",imagesset);
+                con.open_playlist_id=((open_playlist)context).current_id;
+                con.playsong(getLayoutPosition());
+
+            }else if(id.equals("open_playlist")){
+                //con.setsong(getLayoutPosition());
+                // con.playsong();
+                con.setMylist(songs_list,"open_playlist",imagesset);
+                con.open_playlist_id=((open_playlist)context).current_id;
+                con.playsong(getLayoutPosition());
+
+            }
+        }
+        public void handleSongsOptions(final View v){
+            popup=new PopupMenu(context,v);
+            popup.getMenuInflater().inflate(R.menu.songs_options,popup.getMenu());
+            popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                public boolean onMenuItemClick(MenuItem item) {
+                    int ids=item.getItemId();
+                    switch (ids){
+                        case R.id.psongs_play :{
+                            if(id.equals("allsongs")){
+                                con.setMylist(con.allsonglist,"allsongs",true);
+                            }else {
+                                con.setMylist(songs_list, id, imagesset);
+                            }
+
+                            con.playsong(getLayoutPosition());
+                            if(id.equals("song")|| id.equals("allsongs")  ) {
+                                face.setcardss(con.getsong());
+
+                            }
+                            return true;
+                        }
+                        case R.id.psongs_add_to_playlist: {
+                            PopupMenu popup1=new PopupMenu(context,v);
+                            /// getplaylist to populate popupmenu
+                            Log.i("popo","addtoplaylist");
+                            final ArrayList<songs> list;
+                            list=get_playlist();
+                            for(songs song :list ){
+                                popup1.getMenu().add(song.getName());
+                                Log.i("popo",song.getName());
+                            }
+                            popup1.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                                public boolean onMenuItemClick(MenuItem item) {
+                                    for(songs playlist : list){
+                                        if(playlist.getName().equals(item.getTitle())) {
+                                            if (playlist.getId().equals(0L)) {
+                                                // add new playlist and add song to tht playlist
+                                                addnewPlaylistwithSongs(songs_list.get(getLayoutPosition()));
+                                            } else {
+                                                addTracksToPlaylist(playlist.getId(), songs_list.get(getLayoutPosition()));
+                                                Toast.makeText(context, "added " + songs_list.get(getLayoutPosition()).getName() + " to " + playlist.getName(), Toast.LENGTH_LONG).show();
+                                            }
+                                        }
+                                    }
+                                    return true;
+                                }
+                            });
+                            popup1.show();
+                            return true;
+                        }
+                        case R.id.psongs_delete: {
+                            builder.setMessage("are you sure you want to delete "+songs_list.get(getLayoutPosition()).getName());
+                            builder.setCancelable(true) ;
+                            builder.setPositiveButton(
+                                    "yes",
+                                    new DialogInterface.OnClickListener() {
+                                        public void onClick(DialogInterface dialog, int id) {
+                                            deletesong(songs_list.get(getLayoutPosition()).getId());
+
+                                        }
+                                    });
+
+                            builder.setNegativeButton(
+                                    "no",
+                                    new DialogInterface.OnClickListener() {
+                                        public void onClick(DialogInterface dialog, int id) {
+                                            dialog.cancel();
+                                        }
+                                    });
+
+                            AlertDialog alert = builder.create();
+                            alert.show();
+                            return true;
+                        }
+                        case R.id.psongs_playnext: {
+                            con.addSongtoNextPos(songs_list.get(getLayoutPosition()));
+                            return true;
+                        }
+                        case R.id.psongs_addtoqueue: {
+                            add_to_queue(songs_list.get(getLayoutPosition()));
+                            return true;
+                        }
+                    }
+                    return true;
+                }
+            });
+            popup.show();
 
 
-       public void removesongfromplaylist(Long song_id,Long playlist_id){
+        }
+        public void handlePlaylistOptions(View v){
+            popup=new PopupMenu(context,v);
+            popup.getMenuInflater().inflate(R.menu.playlist_options,popup.getMenu());
+            popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                public boolean onMenuItemClick(MenuItem item) {
+                    if(item.getItemId()==R.id.Oplaylist_open){
+                        openplaylist();
+                    } else if(item.getItemId()==R.id.Oplaylist_delete){
+                        builder.setMessage("Are you sure you want to delete : "+songs_list.get(getLayoutPosition()).getName());
+                        builder.setCancelable(true);
+                        builder.setPositiveButton(
+                                "yes",
+                                new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int id) {
+                                        deleteplaylist(songs_list.get(getLayoutPosition()).getId());
+                                        songs_list.remove(getLayoutPosition());
+                                        notifyItemRemoved(getLayoutPosition());
+                                    }
+                                });
+
+                        builder.setNegativeButton(
+                                "no",
+                                new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int id) {
+                                        dialog.cancel();
+                                    }
+                                });
+
+                        AlertDialog alert = builder.create();
+                        alert.show();
+
+                    }
+                    else if(item.getItemId()==R.id.Oplaylist_rename){
+                        builder.setTitle("Playlist name");
+                        builder.setCancelable(true);
+                        // Set up the input
+                        final EditText input = new EditText(context);
+                        input.setInputType(InputType.TYPE_CLASS_TEXT );
+                        builder.setView(input);
+                        builder.setPositiveButton(
+                                "Rename",
+                                new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int id) {
+                                        String str=input.getText().toString();
+                                        int pos=getLayoutPosition();
+                                        Long playlistid=songs_list.get(pos).getId();
+                                        ContentValues values = new ContentValues();
+                                        values.put(MediaStore.Audio.Playlists.NAME,str);
+                                        songs_list.get(pos).setName(str);
+                                        resolver.update(MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI,
+                                                values, "_id=" + playlistid, null);
+                                        notifyItemChanged(pos);
+                                    }
+                                });
+
+                        builder.setNegativeButton(
+                                "Cancel",
+                                new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int id) {
+                                        dialog.cancel();
+                                    }
+                                });
+
+                        AlertDialog alert = builder.create();
+                        alert.show();
+                    }
+                    return true;
+                }
+            });
+            popup.show();
+        }
+        public void handle_openPlaylist_options(View v){
+            popup=new PopupMenu(context,v);
+            popup.getMenuInflater().inflate(R.menu.open_playlist,popup.getMenu());
+            popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                public boolean onMenuItemClick(MenuItem item) {
+                    if(item.getItemId()==R.id.open_Remove){
+                        // remove song from playlist ... plylst is the interface with activity openplaylist
+                        removesongfromplaylist(songs_list.get(getLayoutPosition()).getId(),plylst.getplaylist_id());
+                        ((open_playlist)context).refreshNoOfSongs();
+                    } else if(item.getItemId()==R.id.open_play){
+                        con.setMylist(songs_list,"open_playlist",imagesset);
+
+                        con.playsong(getLayoutPosition());
+                    }else if(item.getItemId()==R.id.open_PlayNext){
+                        con.addSongtoNextPos(songs_list.get(getLayoutPosition()));
+                        return true;
+                    }else if(item.getItemId()==R.id.open_AddToQueue){
+                        add_to_queue(songs_list.get(getLayoutPosition()));
+                    }
+                    return true;
+                }
+            });
+            popup.show();
+        }
+        public void handle_nowPlaying_options(View v){
+            popup=new PopupMenu(context,v);
+            popup.getMenuInflater().inflate(R.menu.now_playing_options,popup.getMenu());
+            popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                public boolean onMenuItemClick(MenuItem item) {
+                    if(item.getItemId()==R.id.now_playing_play){
+                        // play song
+                        con.playsong(getLayoutPosition());
+                    } else if(item.getItemId()==R.id.now_playing_removefromqueue){
+                        // remove from queue i.e from arreylist of service
+                        con.remove_song(getLayoutPosition());
+                        notifyItemRemoved(getLayoutPosition());
+                    }
+                    return true;
+                }
+            });
+            popup.show();
+        }
+        public void handle_album_options(final View v){
+
+            popup=new PopupMenu(context,v);
+            popup.getMenuInflater().inflate(R.menu.album,popup.getMenu());
+            popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                public boolean onMenuItemClick(MenuItem item) {
+                    if(item.getItemId()==R.id.album_open){
+                        open_album("false",v);
+                    } else if(item.getItemId()==R.id.album_playall){
+                        open_album("true",v);
+                    }else if(item.getItemId()==R.id.album_delete){
+                        deleteAlbum(songs_list.get(getLayoutPosition()).getId());
+                        notifyItemRemoved(getLayoutPosition());
+                    }
+                    return true;
+                }
+            });
+            popup.show();
+        }
+
+        public void removesongfromplaylist(Long song_id,Long playlist_id){
            Log.i("popop","remove song");
            int i=0;
            try {
@@ -559,37 +581,48 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
             // for shared transitoin
             // create the transition animation - the images in the layouts
             // of both activities are defined with android:transitionName="playlistTransition"
-            ActivityOptions options=null;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-
-                ((MainActivity) context).getWindow().setExitTransition(TransitionInflater.from(context).inflateTransition(R.transition.fade_edited));
-                if (Window.NAVIGATION_BAR_BACKGROUND_TRANSITION_NAME != null) {
-                    options = ActivityOptions.makeSceneTransitionAnimation((AppCompatActivity) context,
-                            Pair.create((View) image, "albumTransition"), Pair.create((View) name, "albumname_transition"),
-                            Pair.create((View) artist, "albumartist_transition"),
-                            //Pair.create((View)((MainActivity) context).appBarLayout , "album_transition_appbar"),
-                            //Pair.create((View)card,"albummain"),
-                            Pair.create(((MainActivity) context).findViewById(android.R.id.navigationBarBackground), Window.NAVIGATION_BAR_BACKGROUND_TRANSITION_NAME),
-                            Pair.create(((MainActivity) context).findViewById(android.R.id.statusBarBackground), Window.STATUS_BAR_BACKGROUND_TRANSITION_NAME)
-                    );
-                } else {
-                    // for phones which do not have a navigaotion bar
-                    options = ActivityOptions.makeSceneTransitionAnimation((AppCompatActivity) context,
-                            Pair.create((View) image, "albumTransition"), Pair.create((View) name, "albumname_transition"),
-                            Pair.create((View) artist, "albumartist_transition"),
-                            //Pair.create((View)card,"albummain"),
-                           Pair.create(((MainActivity) context).findViewById(android.R.id.statusBarBackground), Window.STATUS_BAR_BACKGROUND_TRANSITION_NAME)
-                    );
+            try {
+                ActivityOptions options = null;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    try {
+                        ((MainActivity) context).getWindow().setExitTransition(TransitionInflater.from(context).inflateTransition(R.transition.fade_edited));
+                        options = ActivityOptions.makeSceneTransitionAnimation((AppCompatActivity) context,
+                                Pair.create((View) image, "albumTransition"), Pair.create((View) name, "albumname_transition"),
+                                Pair.create((View) artist, "albumartist_transition"),
+                                //Pair.create((View)((MainActivity) context).appBarLayout , "album_transition_appbar"),
+                                //Pair.create((View)card,"albummain"),
+                                Pair.create(((MainActivity) context).findViewById(android.R.id.navigationBarBackground), Window.NAVIGATION_BAR_BACKGROUND_TRANSITION_NAME),
+                                Pair.create(((MainActivity) context).findViewById(android.R.id.statusBarBackground), Window.STATUS_BAR_BACKGROUND_TRANSITION_NAME)
+                        );
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        // for phones which do not have a navigaotion bar
+                        options = ActivityOptions.makeSceneTransitionAnimation((AppCompatActivity) context,
+                                Pair.create((View) image, "albumTransition"), Pair.create((View) name, "albumname_transition"),
+                                Pair.create((View) artist, "albumartist_transition"),
+                                Pair.create(((MainActivity) context).findViewById(android.R.id.statusBarBackground), Window.STATUS_BAR_BACKGROUND_TRANSITION_NAME)
+                        );
+                    }
                 }
-            }
-            intent.putExtra("method","album");
-            intent.putExtra("album_art",songs_list.get(getLayoutPosition()).getImagepath());
-            intent.putExtra("album_name",songs_list.get(getLayoutPosition()).getName());
-            intent.putExtra("album_playall",playall);
-            intent.putExtra("album_id",songs_list.get(getLayoutPosition()).getId());////////////////////
-            if(options!=null) {
-                context.startActivity(intent, options.toBundle());
-            }else{
+                intent.putExtra("method", "album");
+                intent.putExtra("album_art", songs_list.get(getLayoutPosition()).getImagepath());
+                intent.putExtra("album_name", songs_list.get(getLayoutPosition()).getName());
+                intent.putExtra("album_playall", playall);
+                intent.putExtra("album_id", songs_list.get(getLayoutPosition()).getId());////////////////////
+                if (options != null) {
+                    context.startActivity(intent, options.toBundle());
+                } else {
+
+                    context.startActivity(intent);
+                }
+            }catch (Exception e){
+                e.printStackTrace();
+                intent=new Intent(context,open_playlist.class);
+                intent.putExtra("method", "album");
+                intent.putExtra("album_art", songs_list.get(getLayoutPosition()).getImagepath());
+                intent.putExtra("album_name", songs_list.get(getLayoutPosition()).getName());
+                intent.putExtra("album_playall", playall);
+                intent.putExtra("album_id", songs_list.get(getLayoutPosition()).getId());////////////////////
                 context.startActivity(intent);
             }
         }
@@ -614,6 +647,14 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
 
         }
 
+        public void deleteAlbum(Long _id) {
+            String[] albumid =new String[]{String.valueOf(_id)};
+            Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+            resolver.delete(uri, MediaStore.Audio.Media.ALBUM_ID + " = ?",albumid);
+            Toast.makeText(context,songs_list.get(getLayoutPosition()).getName() + " Deleted", Toast.LENGTH_SHORT).show();
+            int i=getLayoutPosition();
+            songs_list.remove(i);
+        }
         public void deletesong(Long audioid){
             int i = 0;
             try {
@@ -637,6 +678,11 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
             }
         }
 
+        public void add_to_queue(songs song){
+            ArrayList<songs> listt =new ArrayList<>();
+            listt.add(song);
+            con.addSongToList(listt);
+        }
         }
 
     public class Animationclass{
@@ -775,7 +821,38 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
         mInserts.put(MediaStore.Audio.Playlists.DATE_MODIFIED, System.currentTimeMillis());
         context.getContentResolver().insert(MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI, mInserts);
     }
+    public void addnewPlaylistwithSongsAsync(final ArrayList<Long> selectedsong_ids){
+        builder=new AlertDialog.Builder(context);
+        builder.setTitle("Playlist name");
+        builder.setCancelable(true);
+        final EditText input = new EditText(context);
+        // Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
+        input.setInputType(InputType.TYPE_CLASS_TEXT );
+        builder.setView(input);
+        builder.setPositiveButton(
+                "Create",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        String s=input.getText().toString();
+                        createnewplaylist(s);
+                        playlistIdForMultipleAdd=findPlaylistIdByName(s);
+                        addToPaylistMultiple addtoPlaylist=new addToPaylistMultiple();
+                        addtoPlaylist.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,selectedsong_ids);
 
+                    }
+                });
+
+        builder.setNegativeButton(
+                "Cancel",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        dialog.cancel();
+                    }
+                });
+
+        AlertDialog alert = builder.create();
+        alert.show();
+    }
 
     //-------------------------
 
@@ -891,10 +968,10 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
         final ArrayList<songs> playlist_list=get_playlist();
         //show a dialog
 
-        CharSequence colors[]=new String[playlist_list.size()];
+        CharSequence playlistts[]=new String[playlist_list.size()];
         for(int i=0;i<playlist_list.size();i++){
             String s=playlist_list.get(i).getName();
-            colors[i]=(CharSequence) s;
+            playlistts[i]=(CharSequence) s;
         }
         builder = new AlertDialog.Builder(context);
         if(playlist_list.size()==0){
@@ -906,15 +983,21 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
         final ArrayList<Long> selectedsong_ids ;
         selectedsong_ids=makeArrayOfidsFromSparseArray(false);
 
-        builder.setItems(colors, new DialogInterface.OnClickListener() {
+        builder.setItems(playlistts, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                // the user clicked on colors[which]
-                Long l=playlist_list.get(which).getId();
-                playlistIdForMultipleAdd=l;
-                addToPaylistMultiple addtoPlaylist=new addToPaylistMultiple();
-                addtoPlaylist.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,selectedsong_ids);
+                // the user clicked on playlistts[which]
+                playlistIdForMultipleAdd=playlist_list.get(which).getId();
 
+                if (playlistIdForMultipleAdd.equals(0L)) {
+                    // add new playlist and add songs to tht playlist
+                    dialog.dismiss();
+                    addnewPlaylistwithSongsAsync(selectedsong_ids);
+                } else {
+                    addToPaylistMultiple addtoPlaylist=new addToPaylistMultiple();
+                    addtoPlaylist.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,selectedsong_ids);
+
+                }
             }
         });
         builder.setCancelable(false);

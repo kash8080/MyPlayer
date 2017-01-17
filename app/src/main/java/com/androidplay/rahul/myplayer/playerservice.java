@@ -57,7 +57,7 @@
 
     public static ArrayList<songs> mylist;
     public static Context activitycontext;
-
+    static int currentsongno=0;
     //mediasessioncompat
     static MediaSessionCompat msession ;
     AudioManager audioManager;
@@ -67,11 +67,13 @@
     private static int playpausenoti=R.drawable.pause_white;
 
     public playerservice() {
+        Log.i("qwsd","service constructor");
+
     }
 
     @Override
     public IBinder onBind(Intent intent) {
-        Log.i("uiui","service bind");
+        Log.i("qwsd","service bind");
 
         activitycontext=ApplicationController.activitycontext;
         return musicBind;
@@ -79,7 +81,7 @@
     }
     @Override
     public boolean onUnbind(Intent intent) {
-        Log.i("uiui","service unbind");
+        Log.i("qwsd","service unbind");
 
         player.stop();
         player.release();
@@ -90,13 +92,15 @@
 
     public class MusicBinder extends Binder {
         playerservice getService() {
+            Log.i("qwsd","get service binder");
+
             return playerservice.this;
         }
     }
 
     @Override
     public void onCreate() {
-        Log.i("uiui","service oncreste");
+        Log.i("qwsd","service oncreste");
 
         super.onCreate();
         askaudio();
@@ -106,11 +110,15 @@
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.i("qwsd","on start command");
+
         MediaButtonReceiver.handleIntent(msession,intent);
         return super.onStartCommand(intent, flags, startId);
     }
 
     public void setcontext(Context contextt) {
+        Log.i("qwsd","set context");
+
         this.activitycontext=contextt;
 
         //initialising here to make sure context is not null
@@ -128,33 +136,64 @@
         //buildnotification();
     }
 
-    public  void setplayer() {
-        player = ExoPlayer.Factory.newInstance(1);
+    @Override
+    public void onDestroy() {
+        Log.i("qwsd","service on destroy");
 
-        player.addListener(new ExoPlayer.Listener() {
-            @Override
-            public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
-                Log.i("kkkk", "state changed");
+        try{unregisterReceiver(mbreceiver);
+            player.stop();
+            player.release();
+            audioManager.abandonAudioFocus(this);
+            msession.release();
+
+        }catch (Exception e){}
+        try{mNotificationManager.cancel(400);
+        }catch (Exception e){}
 
 
-                if (playbackState == ExoPlayer.STATE_ENDED) {
-                    //player back ended
-                    playnext();
-                    ApplicationController.app_playnextsong();
-                }
-            }
 
-            @Override
-            public void onPlayWhenReadyCommitted() {
-
-            }
-
-            @Override
-            public void onPlayerError(ExoPlaybackException error) {
-
-            }
-        });
+        super.onDestroy();
     }
+
+    @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        Log.i("qwsd","ontaskremoved");
+       // super.onTaskRemoved(rootIntent);
+/*
+        super.onTaskRemoved(rootIntent);
+        onDestroy();
+
+        stopService(ApplicationController.playIntent);
+        */
+    }
+
+    public  void setplayer() {
+    player = ExoPlayer.Factory.newInstance(1);
+
+    player.addListener(new ExoPlayer.Listener() {
+        @Override
+        public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
+            Log.i("kkkk", "state changed");
+
+
+            if (playbackState == ExoPlayer.STATE_ENDED) {
+                //player back ended
+                playnext();
+                //ApplicationController.app_playnextsong();
+            }
+        }
+
+        @Override
+        public void onPlayWhenReadyCommitted() {
+
+        }
+
+        @Override
+        public void onPlayerError(ExoPlaybackException error) {
+
+        }
+    });
+}
 
     public void setmetadata(){
         try {
@@ -347,7 +386,7 @@
         } else return 0L;
     }
     public void playsong(int pos) {
-        Log.i("bnbnn", "playsong ");
+        Log.i("bnbnn", "playsong at pos="+String.valueOf(pos));
 
         registerReceiver(mbreceiver,intentfilter);
         if (mylist.size() > 0 && current_pos == -1) {
@@ -362,7 +401,7 @@
 
                 current_pos = pos;
 
-                Log.i("hhhh", "playnext" + mylist.size() + " " + current_pos);
+                Log.i("bnbn", "playnext" + mylist.size() + " " + current_pos);
 
                 if (player == null) {
                     setplayer();
@@ -398,7 +437,7 @@
                 Log.i("exoo", "--");
                 player.seekTo(100L);
     //
-                ApplicationController.app_refresh();
+                //ApplicationController.app_refresh();
 
 
                 setstate();
@@ -519,7 +558,10 @@
         return randomno;
     }
     public static void addsongstolist(ArrayList<songs> songlist){
-        mylist.addAll(songlist);
+        for(songs s:songlist){
+            mylist.add(s);
+        }
+        //mylist.addAll(songlist);
     }
     public void addSongToNextPos(songs s){
         if(mylist!=null ){
@@ -535,6 +577,7 @@
             current_pos=0;
         }
     }
+
     // for pausing music after removing headphones .. we will register/unregister this with play/pause
     private  BroadcastReceiver mbreceiver =new BroadcastReceiver() {
         @Override
@@ -544,40 +587,13 @@
                 playpausenoti=R.drawable.play_white;
                 mBuilder.mActions.get(1).icon=playpausenoti;
                 mNotificationManager.notify(400,mBuilder.build());
-                ApplicationController.app_refresh();
+                //ApplicationController.app_refresh();
             }
-            ApplicationController.app_refresh();
+           // ApplicationController.app_refresh();
         }
     };
      IntentFilter intentfilter =new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
 
-
-    @Override
-    public void onDestroy() {
-        Log.i("uiui","servicedestroy");
-
-        try{unregisterReceiver(mbreceiver);
-            player.stop();
-            player.release();
-            audioManager.abandonAudioFocus(this);
-            msession.release();
-
-        }catch (Exception e){}
-        try{mNotificationManager.cancel(400);
-        }catch (Exception e){}
-
-
-
-        super.onDestroy();
-    }
-
-    @Override
-    public void onTaskRemoved(Intent rootIntent) {
-        super.onTaskRemoved(rootIntent);
-        onDestroy();
-
-        stopService(ApplicationController.playIntent);
-    }
 
     private  class mediacallback extends MediaSessionCompat.Callback{
         @Override
@@ -595,9 +611,8 @@
             mBuilder.mActions.get(1).icon=playpausenoti;
             mNotificationManager.notify(400,mBuilder.build());
             */
-
             //buildnotification();
-            ApplicationController.app_refresh();
+            //ApplicationController.app_refresh();
         }
 
         @Override
@@ -621,7 +636,7 @@
             */
 
             //buildnotification();
-            ApplicationController.app_refresh();
+            //ApplicationController.app_refresh();
 
         }
 
@@ -631,7 +646,7 @@
             playnext();
             buildnotification();
             Log.i("hjhj","next");
-            ApplicationController.app_refresh();
+            //ApplicationController.app_refresh();
 
         }
 
@@ -641,7 +656,7 @@
             playprev();
             buildnotification();
             Log.i("hjhj","previous");
-            ApplicationController.app_refresh();
+           // ApplicationController.app_refresh();
 
         }
 
@@ -652,7 +667,7 @@
             pause();
             Log.i("bnbnn","onstop");
             mNotificationManager.cancel(400);
-            ApplicationController.app_refresh();
+            //ApplicationController.app_refresh();
             super.onStop();
         }
 
@@ -674,7 +689,7 @@
             mBuilder.mActions.get(1).icon = playpausenoti;
             mNotificationManager.notify(400, mBuilder.build());
         }catch (Exception e){e.printStackTrace();}
-        ApplicationController.app_refresh();
+       // ApplicationController.app_refresh();
     }
 
 

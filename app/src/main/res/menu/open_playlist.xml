@@ -2,10 +2,19 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item android:title="Play"
+        android:orderInCategory="1"
         android:id="@+id/open_play">
     </item>
+    <item android:title="Play next"
+        android:orderInCategory="2"
+        android:id="@+id/open_PlayNext">
+    </item>
+    <item android:title="Add to Queue"
+        android:orderInCategory="3"
+        android:id="@+id/open_AddToQueue">
+    </item>
     <item android:title="Remove from playlist"
+        android:orderInCategory="4"
         android:id="@+id/open_Remove">
     </item>
-
 </menu>

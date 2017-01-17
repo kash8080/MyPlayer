@@ -8,6 +8,10 @@
         android:id="@+id/psongs_playnext"
         >
     </item>
+    <item android:title="Add to Queue"
+        android:id="@+id/psongs_addtoqueue"
+        >
+    </item>
     <item android:title="Add to playlist"
         android:id="@+id/psongs_add_to_playlist"
         >

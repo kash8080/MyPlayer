@@ -13,8 +13,13 @@ import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.RectShape;
 import android.os.AsyncTask;
 import android.os.Build;
+import android.os.RemoteException;
 import android.preference.PreferenceManager;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.media.MediaMetadataCompat;
+import android.support.v4.media.session.MediaControllerCompat;
+import android.support.v4.media.session.MediaSessionCompat;
+import android.support.v4.media.session.PlaybackStateCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.graphics.Palette;
@@ -31,8 +36,7 @@ import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
-public class playerr extends AppCompatActivity implements View.OnClickListener,SeekBar.OnSeekBarChangeListener,
-                                    ApplicationController.informactivity{
+public class playerr extends AppCompatActivity implements View.OnClickListener,SeekBar.OnSeekBarChangeListener{
 
     Toolbar toolbar;
     boolean isplaying=false;
@@ -50,9 +54,32 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
     public int viewupdater=0;
     View back_colour;
     LinearLayout gradient_back;
+    MediaControllerCompat controllerCompat;
+    PlaybackStateCompat currentPlaybackstate ;
+    MediaMetadataCompat currentmetadata ;
+
+    private MediaControllerCompat.Callback callback=new MediaControllerCompat.Callback() {
+        @Override
+        public void onPlaybackStateChanged(PlaybackStateCompat state) {
+            Log.i("mjkl","playbackstate change callback");
+            super.onPlaybackStateChanged(state);
+            currentPlaybackstate=state;
+            setstate(state);
+        }
+
+        @Override
+        public void onMetadataChanged(MediaMetadataCompat metadata) {
+            Log.i("mjkl","metadata change callback");
+            super.onMetadataChanged(metadata);
+            currentmetadata=metadata;
+            setmetadata(metadata);
+        }
+    };
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        con=new ApplicationController(this.getApplicationContext(),this);
+        con=new ApplicationController();
 
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
         String thme=sharedPref.getString("THEME_LIST","1") ;
@@ -88,11 +115,22 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
         setContentView(R.layout.activity_playerr);
         Log.i("kkkk","oncreate---------------");
 
+        initialise();
+        setrepeatbutton(false);
+        setshufflebutton(false);
+        seticon(false);
+
+        //-----------kk-k--k
+        connectControllerToSession(con.getMediaSessionToken());
+
+    }
+
+    public void initialise(){
         toolbar=(Toolbar)findViewById(R.id.player_toolbar);
         setSupportActionBar(toolbar);
         try{
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        }catch (Exception e){}
+        }catch (Exception e){e.printStackTrace();}
         Log.i("llll","on create :conisplaying"+con.isPlaying());
 
         previous=(ImageButton)findViewById(R.id.previous);
@@ -110,8 +148,7 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
         isrepeat=con.isRepeat();
         isshuffle=con.isShuffle();
 
-      // seekbarasync.execute();
-
+        // seekbarasync.execute();
 
         play_pause.setOnClickListener(this);
         previous.setOnClickListener(this);
@@ -122,16 +159,64 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
 
         image.setScaleType(ImageView.ScaleType.CENTER_CROP);
 
-        setrepeatbutton();
-        setshufflebutton();
 
+    }
+    private void connectControllerToSession(MediaSessionCompat.Token token) {
+        try {
+            controllerCompat=new MediaControllerCompat(this,con.getMediaSessionToken());
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+        PlaybackStateCompat stateCompat=controllerCompat.getPlaybackState();
+        MediaMetadataCompat metadataCompat=controllerCompat.getMetadata();
+        currentPlaybackstate=stateCompat;
+        currentmetadata=metadataCompat;
+        setstate(stateCompat);
+        setmetadata(metadataCompat);
+       }
 
+    public void setmetadata(MediaMetadataCompat metadataCompat){
+        refreshview();
+    }
+    public void setstate(PlaybackStateCompat stateCompat){
+        if(stateCompat!=null) {
+            switch (stateCompat.getState()) {
+                case PlaybackStateCompat.STATE_PLAYING: {
+                    Log.i("mjkl", "state playing state ");
+                    isplaying=true;
+                    seticon(true);
+                    break;
+                }
+                case PlaybackStateCompat.STATE_NONE: {
+                    Log.i("mjkl", "none state state ");
+                    break;
+                }
+                case PlaybackStateCompat.STATE_PAUSED: {
+                    Log.i("mjkl", "paused state ");
+                    isplaying=false;
+                    seticon(true);
+                    break;
+                }
+                case PlaybackStateCompat.STATE_BUFFERING: {
+                    Log.i("mjkl", "buffering state ");
+                    break;
+                }
+                default:
+                    Log.i("mjkl", "unhandled state " + stateCompat.getState());
+            }
+        }else{
+            isplaying=false;
+            seticon(false);
+        }
     }
 
     @Override
     protected void onResume() {
+        super.onResume();
+        controllerCompat.registerCallback(callback);
+        currentPlaybackstate=controllerCompat.getPlaybackState();
 
-
+        currentmetadata=controllerCompat.getMetadata();
         if(con.getCurrentPosition()==-1){
             con.setCurrent_pos(0);
         }
@@ -140,14 +225,9 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
 
         seekbarasync =new updateseekbar1();
         seekbarasync.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
-        //seekbarasync.execute();
 
-        super.onResume();
-        Log.i("llll","on resume :conisplaying"+con.isPlaying());
         isplaying=con.isPlaying();
         refreshview();
-        seticon();
-
 
     }
 
@@ -155,16 +235,17 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
     protected void onPause() {
         seekbarasync.cancel(true);
         seekbarasync.canrun=false;
+        controllerCompat.unregisterCallback(callback);
         super.onPause();
     }
 
-    public void seticon(){
+    public void seticon(boolean animation){
 
         if(isplaying){
             Log.i("llll","isplaying");
             //play_pause.setImageResource(R.drawable.pause_white);
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && animation) {
                 play_pause.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.avd_play_to_pause_white));
                 Drawable drawable = play_pause.getDrawable();
                 ((Animatable) drawable).start();
@@ -174,7 +255,7 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
 
         }else{
             //play_pause.setImageResource(R.drawable.play_white);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && animation) {
                 play_pause.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.avd_pause_to_play_white));
                 Drawable drawable = play_pause.getDrawable();
                 ((Animatable) drawable).start();
@@ -210,6 +291,7 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
 
     public void refreshview(){
 
+
         Log.i("lllll","refresh");
         current_song=con.getsong();
         setdata();
@@ -217,7 +299,6 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
 
     public void setdata(){
         try {
-            isplaying=con.isPlaying();
             Long timemilli=con.getDuration();
             int currtm=Integer.parseInt(String.valueOf(con.getcurrentplaybacktime()/1000L));
             int timesec=Integer.parseInt(String.valueOf(timemilli/1000L));
@@ -229,36 +310,33 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
             getSupportActionBar().setTitle(current_song.getName());
             getSupportActionBar().setSubtitle(current_song.getArtist());
             bitmap= BitmapFactory.decodeFile(current_song.getImagepath());
-
+            setmax=timemilli;
+            seekBar.setMax(Integer.parseInt(String.valueOf(timemilli /1000L )));
+            seekBar.setProgress((currtm));
             if(bitmap!=null){
                 image.setImageBitmap(bitmap);
                 Palette palette=Palette.from(bitmap).generate();
-                Palette.Swatch swatch=palette.getDarkMutedSwatch();
+                Palette.Swatch swatch;
+                try {
+                    swatch = palette.getDarkMutedSwatch();
+                }catch (Exception e){
+                    swatch = palette.getMutedSwatch();
+                }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                     getWindow().setStatusBarColor(swatch.getRgb());
                 }
-                //back_colour.setBackgroundColor(swatch.getRgb());
-                //back_colour.getBackground().setAlpha(70);
                 gradient_back.setBackground(ContextCompat.getDrawable(this,R.drawable.grad));
 
             }else{
                 image.setImageResource(R.drawable.mp3full);
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    getWindow().setStatusBarColor(con.getPrimaryDark());
+                    getWindow().setStatusBarColor(Color.GRAY);
                 }
             }
 
+        }catch (Exception e){
 
-
-            //Log.i("mmmm","setdata: getDuration setmax"+(String.valueOf(Integer.parseInt(String.valueOf(timemilli/1000L)))));
-            setmax=timemilli;
-            seekBar.setMax(Integer.parseInt(String.valueOf(timemilli /1000L )));
-            //seekBar.setMax(con.getDuration());
-            //Log.i("lllll","----"+String.valueOf(timemilli));
-            seticon();
-            seekBar.setProgress((currtm));
-
-        }catch (Exception e){}
+        }
     }
     public String gettime(int secs){
        int min=secs/60;
@@ -279,10 +357,17 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
         int id=v.getId();
         switch (id){
             case R.id.previous :{
+                previous.animate().scaleX(1.25f).scaleY(1.25f).setDuration(0).withEndAction(new Runnable() {
+                    @Override
+                    public void run() {
+                        previous.animate().scaleX(1).scaleY(1).setDuration(300).start();
+                    }
+                });
+
                 Log.i("lllll","previous");
                 seekBar.setProgress(0);
                 con.playprev();
-                refreshview();
+                //refreshview();
                 seekBar.setProgress(0);
                 return;
             }
@@ -290,50 +375,43 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
                 Log.i("mmmm","playpause");
                // Log.i("mmmm",String.valueOf(con.getCurrentPosition())+"---"+String.valueOf(con.getlist().size()));
 
-                isplaying=con.isPlaying();
-                Log.i("mmmm",String.valueOf(isplaying));
+                if(currentPlaybackstate!=null) {
+                    MediaControllerCompat.TransportControls controls = controllerCompat.getTransportControls();
+                    switch (currentPlaybackstate.getState()) {
+                        case PlaybackStateCompat.STATE_PLAYING: {
+                            Log.i("mjkl", "state playing state to pause");
+                            controls.pause();
+                            break;
+                        }
+                        case PlaybackStateCompat.STATE_PAUSED: {
+                            Log.i("mjkl", "paused state to play");
+                            controls.play();
+                            break;
+                        }
+                        default:
+                            Log.i("mjkl", "unhandled state " + currentPlaybackstate.getState());
 
-                if(isplaying){
-                    try{con.pause();isplaying=false;
-                    seticon();
-                    }catch (Exception e){}
+                    }
                 }else{
-                   try{
-                       if(con.getCurrentPosition()==0 && con.getlist()!=null ){
-                           if(con.getlist().size()>0) {
-                               if(con.getcurrentplaybacktime()>1000L){
-                                   con.resume();
-                                   isplaying=true;
-                                   seticon();
-                               }else {
-                                   Log.i("mmmm", "playpause not playing -1 null");
-                                   con.playsong(0);
-                                   isplaying=true;
-                                   seticon();
-                                   refreshview();
-
-                               }
-                           }
-                       }
-                       else {
-                           Log.i("mmmm","resuming");
-
-                           con.resume();
-                           isplaying = true;
-                           seticon();
-                       }
-                   }catch (Exception e){}
+                    con.playsong(0);
                 }
+
                 return;
             }
             case R.id.next :{
                 Log.i("mmmm","next---------------");
+                next.animate().scaleX(1.25f).scaleY(1.25f).setDuration(0).withEndAction(new Runnable() {
+                    @Override
+                    public void run() {
+                        next.animate().scaleX(1).scaleY(1).setDuration(300).start();
+                    }
+                });
 
                 Log.i("lllll","next");
                 seekBar.setProgress(0);
                 con.playnext();
 
-                refreshview();
+                //refreshview();
                 seekBar.setProgress(0);
                 return;
             }
@@ -345,11 +423,11 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
                 if(isrepeat){
                     isrepeat=false;
                     con.setRepeat(false);
-                    setrepeatbutton();
+                    setrepeatbutton(true);
                 }else{
                     isrepeat=true;
                     con.setRepeat(true);
-                    setrepeatbutton();
+                    setrepeatbutton(true);
                 }
                 return;
             }
@@ -358,11 +436,11 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
                 if(isshuffle){
                     isshuffle=false;
                     con.setShuffle(false);
-                    setshufflebutton();
+                    setshufflebutton(true);
                 }else{
                     isshuffle=true;
                     con.setShuffle(true);
-                    setshufflebutton();
+                    setshufflebutton(true);
                 }
                 return;
             }
@@ -395,23 +473,6 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
 
     }
 
-    @Override
-    public void playnextsong() {
-        refreshview();
-        seekBar.setProgress(0);
-    }
-
-    @Override
-    public void refresh() {
-        refreshview();
-    }
-
-    @Override
-    public void updateprofileimage() {
-
-    }
-
-
     public void updateseekbarAsync() {
         Long dur=con.getDuration()/1000L;
         if(!con.isnull() && con.isPlaying()){
@@ -434,8 +495,6 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
             Log.i("kkkk","updateseekbar");
         }
     }
-
-
 
 
     public class updateseekbar1 extends AsyncTask<Void,Void,Void>{
@@ -480,15 +539,35 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
         }
     }
 
-    public void setrepeatbutton(){
+    public void setrepeatbutton(boolean animation){
         if(isrepeat){
             repeat.setImageResource(R.drawable.repeat_selected);
-        }else      repeat.setImageResource(R.drawable.repeat);
+        }else{
+            repeat.setImageResource(R.drawable.repeat);
+        }
+        if(animation) {
+            repeat.animate().scaleX(1.25f).scaleY(1.25f).setDuration(0).withEndAction(new Runnable() {
+                @Override
+                public void run() {
+                    repeat.animate().scaleX(1).scaleY(1).setDuration(300).start();
+                }
+            });
+        }
     }
-    public void setshufflebutton(){
+    public void setshufflebutton(boolean animation){
         if(isshuffle){
             shuffle.setImageResource(R.drawable.shuffle_selected);
-        }else      shuffle.setImageResource(R.drawable.shuffle);
+        }else{
+            shuffle.setImageResource(R.drawable.shuffle);
+        }
+        if(animation) {
+            shuffle.animate().scaleX(1.25f).scaleY(1.25f).setDuration(0).withEndAction(new Runnable() {
+                @Override
+                public void run() {
+                    shuffle.animate().scaleX(1).scaleY(1).setDuration(300).start();
+                }
+            });
+        }
     }
 
 }

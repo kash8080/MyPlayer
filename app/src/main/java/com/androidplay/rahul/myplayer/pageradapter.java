@@ -30,7 +30,13 @@ public class pageradapter extends FragmentStatePagerAdapter {
         else if(position==1) return new Albums();
        else return new playlist();*/
     }
-
+    public void refreshFragment(int i){
+        switch (i){
+            case 0:list.set(0,new home());
+            case 1:list.set(1,new Albums());
+            case 2:list.set(2,new playlist());
+        }
+    }
     @Override
     public int getCount() {
         return 3;

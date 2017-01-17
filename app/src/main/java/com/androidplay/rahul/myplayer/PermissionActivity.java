@@ -18,7 +18,7 @@ public class PermissionActivity extends AppCompatActivity {
     Button button;
     FragmentManager fragmentManager;
     FragmentTransaction fragmentTransaction;
-
+    Fragment launch;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.i("llllp","permission on create");
@@ -26,7 +26,8 @@ public class PermissionActivity extends AppCompatActivity {
 
         super.onCreate(savedInstanceState);
 
-        Fragment launch = new launcher();
+
+         launch = new launcher();
         fragmentManager = getFragmentManager();
         fragmentTransaction = fragmentManager.beginTransaction();
         fragmentTransaction.add(android.R.id.content, launch, "HELLO");
@@ -42,6 +43,7 @@ public class PermissionActivity extends AppCompatActivity {
                 fragmentTransaction.replace(android.R.id.content, perm, "HELLO");
                 fragmentTransaction.commit();
         }else{
+
                 Thread t1 =new Thread(new Runnable() {
                     @Override
                     public void run() {

@@ -1,6 +1,8 @@
 package com.androidplay.rahul.myplayer;
 
+import android.app.Activity;
 import android.content.ContentResolver;
+import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -24,32 +26,64 @@ public class playlist extends Fragment {
     RecyclerView rec_view;
     RecyclerView.LayoutManager mlayoutmanager;
     recycler_adapter adapter;
-
+    Context context;
      ContentResolver resolver=null;
+    boolean cancelled=false;
 
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        Log.i("wesd", "createview:");
+
         View v=inflater.inflate(R.layout.activity_playlist,container,false);
-        resolver = getActivity().getContentResolver();
+        resolver = context.getContentResolver();
         playlist_list=new ArrayList<>();
         rec_view=(RecyclerView)v.findViewById(R.id.recview);
         mlayoutmanager=new LinearLayoutManager(getActivity());
-
-        doasync inback=new doasync();
-        inback.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        get_playlist();
         adapter=new recycler_adapter(getActivity(),playlist_list,"playlist");
         rec_view.setLayoutManager(mlayoutmanager);
         rec_view.setAdapter(adapter);
 
         Log.i("cccc","oncreate playlist");
+
         return v;
 
     }
 
-   public ArrayList<songs> get_playlist(){
-        playlist_list=new ArrayList<>();
-       final ContentResolver resolver = getActivity().getContentResolver();
+    @Override
+    public void onAttach(Context context) {
+        Log.i("wesd", "onattach:");
+        this.context=context;
+        super.onAttach(context);
+
+
+    }
+
+    @Override
+    public void onResume() {
+        Log.i("wesd", "onresume:");
+
+        super.onResume();
+       // refreshview();
+    }
+
+    public void refreshview(){
+        doasync inback=new doasync();
+        inback.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        //cancelled=true;
+    }
+
+    public ArrayList<songs> get_playlist(){
+        Log.i("wesd", "getplaylist:");
+
+        ArrayList<songs> playlist_list=new ArrayList<>();
+       final ContentResolver resolver = context.getContentResolver();
        final Uri uri = MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI;
        final String idKey = MediaStore.Audio.Playlists._ID;
        final String nameKey = MediaStore.Audio.Playlists.NAME;
@@ -68,6 +102,9 @@ public class playlist extends Fragment {
            String playlist_id = null;
            String playlist_songs;
            for (boolean hasItem = playLists.moveToFirst(); hasItem; hasItem = playLists.moveToNext()) {
+               if(cancelled){
+                   return playlist_list;
+               }
                playListName = playLists.getString(playLists.getColumnIndex(nameKey));
                playlist_id = playLists.getString(playLists.getColumnIndex(idKey));
                playlist_songs=getplaylistsize(playlist_id);
@@ -81,10 +118,14 @@ public class playlist extends Fragment {
        if (playLists != null) {
           try{ playLists.close();}catch (Exception e){e.printStackTrace();}
        }
+       this.playlist_list=playlist_list;
+        this.playlist_list=playlist_list;
+            //adapter.notifyDataSetChanged();
          return playlist_list;
 
    }
    public String getplaylistsize(String id){
+       ContentResolver resolver = context.getContentResolver();
        Long ids=Long.parseLong(id);
        int i=0;
        final Uri uri = MediaStore.Audio.Playlists.Members.getContentUri("external", ids);
@@ -114,8 +155,10 @@ public class playlist extends Fragment {
         @Override
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
-            adapter.songs_list=playlist_list;
-            adapter.notifyDataSetChanged();
+            if(!cancelled) {
+                adapter.songs_list = playlist_list;
+                adapter.notifyDataSetChanged();
+            }
         }
     }
 }

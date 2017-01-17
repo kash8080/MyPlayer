@@ -20,6 +20,7 @@ import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.provider.MediaStore;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.media.session.MediaSessionCompat;
 import android.util.Base64;
 import android.util.Log;
 
@@ -48,40 +49,41 @@ public class ApplicationController extends Application {
     public static String currenntlistof ;
     public static boolean withimages=false;
 
-    static String profilepic = null;
-    public static boolean loginvalue = false;
-    public static informactivity inform;
     private static playerservice musicSrv;
     public static ArrayList<songs> allsonglist ;
+    public static ArrayList<songs> currentactivitySavedList;
+    public static ArrayList<String> currentactivityalbumartlist;
+
     private static ContentResolver resolver;
     background loadimagesforallsongs;
     public static Long open_playlist_id=0L;
     ////////------------------------------------------
 
-
-
     public ApplicationController() {
 
     }
     public ApplicationController(Context applicationcontext, Context Activitycontext) {
-        this.applicationcontext = applicationcontext;
-        this.activitycontext = Activitycontext;
+        Log.i("qwsd","con constructor");
 
-        inform = (informactivity) Activitycontext;
+        this.applicationcontext = Activitycontext.getApplicationContext();
+        this.activitycontext = Activitycontext;
 
         if (musicSrv != null) {
             musicSrv.setcontext(applicationcontext);
         }
     }
 
+    public MediaSessionCompat.Token getMediaSessionToken(){
+        if (musicSrv != null) {
+            return musicSrv.msession.getSessionToken();
+        }
+        else return null;
+    }
     @Override
     public void onCreate() {
-        Log.i("llllp","con oncrete");
+        Log.i("qwsd","con oncreate");
 
        super.onCreate();
-        //FacebookSdk.sdkInitialize(getApplicationContext());
-        //AppEventsLogger.activateApp(this);
-
         allsonglist=new ArrayList<>();
         resolver=this.getContentResolver();
 
@@ -102,10 +104,10 @@ public class ApplicationController extends Application {
     // when user kills the task with swiping from recent tasks
     @Override
     public void onTerminate() {
-        Log.i("llllp","con onterminate");
+        Log.i("qwsd","con onterminate");
 
         super.onTerminate();
-
+/*
         loadimagesforallsongs.cancel(true);
 
         if(playIntent!=null) {
@@ -113,6 +115,7 @@ public class ApplicationController extends Application {
                 stopService(playIntent);
             }catch (Exception e){}
         }
+        */
     }
 
     ///for connectiong to the service
@@ -205,21 +208,6 @@ public class ApplicationController extends Application {
         // END - UNIVERSAL IMAGE LOADER SETUP
 
     }
-    public static void setloginvalue(boolean value) {
-        Log.i("qqqq", " application controller  " + "setloginvalue" + value);
-
-        loginvalue = value;
-        inform.updateprofileimage();
-    }
-    public static boolean getloginvalue() {
-        return loginvalue;
-    }
-    public static void setprofilepic(String uri) {
-        profilepic = uri;
-    }
-    public static String getProfilepic() {
-        return profilepic;
-    }
 
     public void printhashkey() {
         try {
@@ -244,25 +232,6 @@ public class ApplicationController extends Application {
 
         }
     }
-
-    public interface informactivity {
-         void playnextsong();
-         void refresh();
-         void updateprofileimage();
-    }
-    public  static void app_playnextsong(){
-        try {
-            inform.playnextsong();
-        }catch (Exception e){e.printStackTrace();}
-    }
-    public static void app_refresh(){
-        try{inform.refresh();
-        }catch (Exception e){e.printStackTrace();}
-    }
-    public static void app_updateprofileimage(){
-        inform.updateprofileimage();
-    }
-
 
     //to update current list of songs of current activity(playlist,album etc) .
     public static void setMylist(ArrayList<songs> list,String from,boolean withimg) {
@@ -315,8 +284,6 @@ public class ApplicationController extends Application {
     public static void playsong(int pos) {
         Log.i("clist","current list of- "+currenntlistof);
         musicSrv.playsong(pos);
-        Log.i("contxt2","playing current song with id= "+String.valueOf(getsong().getId()) );
-        Log.i("contxt2","playing current song with id= "+String.valueOf(allsonglist.get(pos).getId()) );
 
 
     }
@@ -373,6 +340,7 @@ public class ApplicationController extends Application {
     public void addSongtoNextPos(songs s){
         musicSrv.addSongToNextPos(s);
     }
+
     public static songs getSongById(Long id){
         for (songs s:allsonglist){
             if(id.equals(s.getId())){

@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <android.support.design.widget.CoordinatorLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+
     android:id="@+id/main_content"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    style="@style/AppTheme.NoActionBar"
-    android:background="#00ffffff"
+    style="@style/AppTheme"
+    android:background="#ffffff"
     android:transitionName="albummain"
 
     android:fitsSystemWindows="true">
@@ -87,6 +89,9 @@
                      </LinearLayout>
                 </LinearLayout>
 
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
                 <ImageView
                     android:id="@+id/album_image"
                     android:layout_width="match_parent"
@@ -94,6 +99,13 @@
                     android:scaleType="centerCrop"
                     android:src="@drawable/navheader1"
                     />
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="#55000000"
+                        android:id="@+id/image_foreground_colour"
+                        />
+                </FrameLayout>
             </FrameLayout>
 
             <FrameLayout
@@ -114,11 +126,11 @@
                     />
                 <TextView
                     android:layout_width="wrap_content"
-                    android:maxWidth="150dp"
+                    android:maxWidth="200dp"
                     android:textSize="18sp"
                     android:padding="5dp"
                     android:textColor="#ffffff"
-                    android:layout_height="40dp"
+                    android:layout_height="wrap_content"
                     android:lines="1"
                     android:id="@+id/overtitle"
                     android:transitionName="albumname_transition"
@@ -137,11 +149,12 @@
                     android:lines="1"
                     android:transitionName="albumartist_transition"
                     android:layout_marginBottom="85dp"
-                    android:layout_marginLeft="120dp"
-                    android:layout_marginRight="30dp"
+                    android:layout_marginStart="120dp"
+                    android:layout_marginEnd="30dp"
                     android:layout_gravity="bottom"
                     android:background="#00ffffff"
-                    />
+                    android:layout_marginLeft="120dp"
+                    android:layout_marginRight="30dp" />
 
 
                 <android.support.v7.widget.Toolbar
@@ -149,6 +162,7 @@
                     android:layout_height="?attr/actionBarSize"
                     android:layout_gravity="bottom"
                     android:id="@+id/desc_bar"
+                    android:visibility="invisible"
                     style="@style/toolbar"
                     >
 
@@ -226,3 +240,5 @@
 
 
 </android.support.design.widget.CoordinatorLayout>
+
+

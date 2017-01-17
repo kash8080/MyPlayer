@@ -10,7 +10,7 @@
         >
     <path
         android:name="avd_play"
-        android:fillColor="@color/colorAccent"
+        android:fillColor="#FF5722"
         android:pathData="M5,2 L5,26 24,14 5,2 M18,0 L18,0 18,0 18,0"/>
     </group>
 </vector>

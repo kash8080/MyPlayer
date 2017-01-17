@@ -2,10 +2,12 @@ package com.androidplay.rahul.myplayer;
 
 import android.graphics.Bitmap;
 
+import java.io.Serializable;
+
 /**
  * Created by Rahul on 14-07-2016.
  */
-public class songs {
+public class songs implements Serializable {
     private String path="";
     private String name="--";
     private String artist="--";

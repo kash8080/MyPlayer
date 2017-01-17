@@ -2,4 +2,5 @@
 <resources>
     <integer name="panelheight">100</integer>
     <integer name="animationsize">400</integer>
+    <integer name="Recview_endmargin">20</integer>
 </resources>

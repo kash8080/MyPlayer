@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <item android:title="open"
+    <item android:title="Open"
         android:id="@+id/album_open">
     </item>
-    <item android:title="play"
+    <item android:title="Play"
         android:id="@+id/album_playall">
+    </item>
+    <item android:title="Delete"
+        android:id="@+id/album_delete">
     </item>
 </menu>

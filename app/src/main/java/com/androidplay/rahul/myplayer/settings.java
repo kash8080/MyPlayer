@@ -13,7 +13,7 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.MenuItem;
 
-public class settings extends AppCompatActivity  implements ApplicationController.informactivity {
+public class settings extends AppCompatActivity {
 
     Toolbar toolbar;
     static Context  context;
@@ -63,21 +63,6 @@ public class settings extends AppCompatActivity  implements ApplicationControlle
                 .commit();
 
 
-
-    }
-
-    @Override
-    public void playnextsong() {
-
-    }
-
-    @Override
-    public void refresh() {
-
-    }
-
-    @Override
-    public void updateprofileimage() {
 
     }
 

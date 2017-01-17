@@ -1,7 +1,11 @@
 package com.androidplay.rahul.myplayer;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.app.SearchManager;
+import android.content.ContentResolver;
+import android.content.ContentValues;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
@@ -15,12 +19,16 @@ import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.text.InputType;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.PopupMenu;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -30,7 +38,9 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.zip.Inflater;
 
-public class SearchableActivity extends AppCompatActivity implements ApplicationController.informactivity{
+import xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScroller;
+
+public class SearchableActivity extends AppCompatActivity {
 
     List<songs> search_result_list;
     Toolbar toolbar ;
@@ -38,6 +48,10 @@ public class SearchableActivity extends AppCompatActivity implements Application
     RecyclerView.LayoutManager linearmanager;
     Recycleradapter adapter;
     ApplicationController con;
+    PopupMenu popup;
+    AlertDialog.Builder builder;
+
+    VerticalRecyclerViewFastScroller fastScroller;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -88,6 +102,13 @@ public class SearchableActivity extends AppCompatActivity implements Application
 
         rec_view.setLayoutManager(linearmanager);
         rec_view.setAdapter(adapter);
+        fastScroller = (VerticalRecyclerViewFastScroller) findViewById(R.id.fast_scroller3);
+
+        // Connect the recycler to the scroller (to let the scroller scroll the list)
+        fastScroller.setRecyclerView(rec_view);
+
+        // Connect the scroller to the recycler (to let the recycler scroll the scroller's handle)
+        rec_view.addOnScrollListener(fastScroller.getOnScrollListener());
         try{
             getSupportActionBar().setTitle(String.valueOf(search_result_list.size())+" songs found");
         }catch (Exception e){
@@ -176,21 +197,6 @@ public class SearchableActivity extends AppCompatActivity implements Application
         refreshview();
     }
 
-    @Override
-    public void playnextsong() {
-
-    }
-
-    @Override
-    public void refresh() {
-
-    }
-
-    @Override
-    public void updateprofileimage() {
-
-    }
-
     public class Recycleradapter extends RecyclerView.Adapter<Recycleradapter.viewholder>{
 
 
@@ -226,32 +232,272 @@ public class SearchableActivity extends AppCompatActivity implements Application
             TextView title;
             TextView artist;
             ImageView options;
-
+            ContentResolver resolver=SearchableActivity.this.getContentResolver();
             public viewholder(View itemView) {
                 super(itemView);
                 title=(TextView)itemView.findViewById(R.id.songs_name);
                 artist=(TextView)itemView.findViewById(R.id.songs_artist);
                 imageView=(ImageView)itemView.findViewById(R.id.songs_image);
                 options=(ImageView)itemView.findViewById(R.id.options);
-                options.setVisibility(View.INVISIBLE);
+                options.setOnClickListener(this);
                 itemView.setOnClickListener(this);
             }
 
             @Override
             public void onClick(View view) {
-                Long id=search_result_list.get(getLayoutPosition()).getId();
-                songs song=ApplicationController.getSongById(id);
-                if(song.getId().equals(0L)){
-                    Toast.makeText(SearchableActivity.this,"Error!",Toast.LENGTH_SHORT).show();
-                    finish();
+                switch(view.getId()){
+                    case (R.id.options): {
+                        handleOptions(view);
+                        break;
+                    }
+                    default:{
+                        Long id=search_result_list.get(getLayoutPosition()).getId();
+                        songs song=ApplicationController.getSongById(id);
+                        if(song.getId().equals(0L)){
+                            Toast.makeText(SearchableActivity.this,"Error!",Toast.LENGTH_SHORT).show();
+                            finish();
+                        }else {
+                            ArrayList<songs> list = new ArrayList<>();
+                            list.add(song);
+                            ApplicationController.setMylist(list, "", false);
+                            ApplicationController.playsong(0);
+                            startActivity(new Intent(SearchableActivity.this, playerr.class));
+                        }
+                    }
+                }
+
+            }
+            public void handleOptions(final View v){
+                popup=new PopupMenu(SearchableActivity.this,v);
+                popup.getMenuInflater().inflate(R.menu.songs_options,popup.getMenu());
+                popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                    public boolean onMenuItemClick(MenuItem item) {
+                        int ids=item.getItemId();
+                        switch (ids){
+                            case R.id.psongs_play :{
+                                con.playsong(getLayoutPosition());
+                                return true;
+                            }
+                            case R.id.psongs_add_to_playlist: {
+                                PopupMenu popup1=new PopupMenu(SearchableActivity.this,v);
+                                /// getplaylist to populate popupmenu
+                                Log.i("popo","addtoplaylist");
+                                final ArrayList<songs> list;
+                                list=get_playlist();
+                                for(songs song :list ){
+                                    popup1.getMenu().add(song.getName());
+                                    Log.i("popo",song.getName());
+                                }
+                                popup1.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                                    public boolean onMenuItemClick(MenuItem item) {
+                                        for(songs playlist : list){
+                                            if(playlist.getName().equals(item.getTitle())) {
+                                                if (playlist.getId().equals(0L)) {
+                                                    // add new playlist and add song to tht playlist
+                                                    addnewPlaylistwithSongs(search_result_list.get(getLayoutPosition()));
+                                                } else {
+                                                    addTracksToPlaylist(playlist.getId(), search_result_list.get(getLayoutPosition()));
+                                                    Toast.makeText(SearchableActivity.this, "added " + search_result_list.get(getLayoutPosition()).getName() + " to " + playlist.getName(), Toast.LENGTH_LONG).show();
+                                                }
+                                            }
+                                        }
+                                        return true;
+                                    }
+                                });
+                                popup1.show();
+                                return true;
+                            }
+                            case R.id.psongs_delete: {
+                                builder=new AlertDialog.Builder(SearchableActivity.this);
+                                builder.setMessage("are you sure you want to delete "+search_result_list.get(getLayoutPosition()).getName());
+                                builder.setCancelable(true) ;
+                                builder.setPositiveButton(
+                                        "yes",
+                                        new DialogInterface.OnClickListener() {
+                                            public void onClick(DialogInterface dialog, int id) {
+                                                deletesong(search_result_list.get(getLayoutPosition()).getId());
+
+                                            }
+                                        });
+
+                                builder.setNegativeButton(
+                                        "no",
+                                        new DialogInterface.OnClickListener() {
+                                            public void onClick(DialogInterface dialog, int id) {
+                                                dialog.cancel();
+                                            }
+                                        });
+
+                                AlertDialog alert = builder.create();
+                                alert.show();
+                                return true;
+                            }
+                            case R.id.psongs_playnext: {
+                                con.addSongtoNextPos(search_result_list.get(getLayoutPosition()));
+                                return true;
+                            }
+                            case R.id.psongs_addtoqueue: {
+                                add_to_queue(search_result_list.get(getLayoutPosition()));
+                                return true;
+                            }
+                        }
+                        return true;
+                    }
+                });
+                popup.show();
+
+
+            }
+            public ArrayList<songs> get_playlist(){
+                ArrayList<songs> playlist_list=new ArrayList<>();
+                playlist_list.add(new songs(0L,"Add New Playlist",""));
+                final ContentResolver resolver = SearchableActivity.this.getContentResolver();
+                final Uri uri = MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI;
+                final String idKey = MediaStore.Audio.Playlists._ID;
+                final String nameKey = MediaStore.Audio.Playlists.NAME;
+                final String songs= MediaStore.Audio.Playlists._COUNT;
+
+
+                final String[] columns = { idKey, nameKey };
+                final Cursor playLists = resolver.query(uri, columns, null, null, null);
+                if (playLists == null) {
+
                 }else {
-                    ArrayList<songs> list = new ArrayList<>();
-                    list.add(song);
-                    ApplicationController.setMylist(list, "", false);
-                    ApplicationController.playsong(0);
-                    startActivity(new Intent(SearchableActivity.this, playerr.class));
+                    // Log a list of the playlists.
+                    String playListName = null;
+                    String playlist_id = null;
+
+                    for (boolean hasItem = playLists.moveToFirst(); hasItem; hasItem = playLists.moveToNext()) {
+                        playListName = playLists.getString(playLists.getColumnIndex(nameKey));
+                        playlist_id = playLists.getString(playLists.getColumnIndex(idKey));
+                        songs playlist =new songs(Long.parseLong(playlist_id),playListName,"");
+                        playlist_list.add(playlist);
+                    }
+                }
+                // Close the cursor.
+                if (playLists != null) {
+                    try{ playLists.close();}catch (Exception e){e.printStackTrace();}
+                }
+                return playlist_list;
+
+            }
+            public  String addTracksToPlaylist(final long id,songs track) {
+                int count = getplaylistsize(id);
+                ContentValues values ;
+
+                values = new ContentValues();
+                values.put(MediaStore.Audio.Playlists.Members.PLAY_ORDER, count + 1);
+                values.put(MediaStore.Audio.Playlists.Members.AUDIO_ID, track.getId());
+
+                Uri uri = MediaStore.Audio.Playlists.Members.getContentUri("external", id);
+
+                resolver.insert(uri, values);
+                resolver.notifyChange(Uri.parse("content://media"), null);
+                return "";
+            }
+            public int getplaylistsize(Long ids){
+
+                int i=0;
+                final Uri uri = MediaStore.Audio.Playlists.Members.getContentUri("external", ids);
+                final String idd=MediaStore.Audio.Playlists.Members._ID;
+                Cursor tracks = resolver.query(uri,new String[]{idd}, null, null, null);
+                if (tracks != null) {
+
+                    while(tracks.moveToNext()){
+                        i++;
+                    }
+                }
+                try{
+                    tracks.close();
+                }catch (Exception e){e.printStackTrace();}
+                return i;
+            }
+            public void deletesong(Long audioid){
+                int i = 0;
+
+                try {
+                    String where = MediaStore.Audio.Playlists.Members._ID + "=?";
+                    String sid = String.valueOf(audioid);
+                    String[] whereVal = {sid};
+
+                    i = resolver.delete(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                            where, whereVal);
+                    Log.i("uiii",String.valueOf(i));
+
+
+                }catch (Exception e){
+                    e.printStackTrace();
+                    Log.i("uiii",e.toString());
+                }
+                if(i>0){
+                    Toast.makeText(SearchableActivity.this, "songs removed: " +search_result_list.get(getLayoutPosition()).getName(), Toast.LENGTH_LONG).show();
+                    search_result_list.remove(getLayoutPosition());
+                    notifyItemRemoved(getLayoutPosition());
                 }
             }
+            public void add_to_queue(songs song){
+                ArrayList<songs> listt =new ArrayList<>();
+                listt.add(song);
+                con.addSongToList(listt);
+            }
+            public void addnewPlaylistwithSongs(final songs s){
+                builder=new AlertDialog.Builder(SearchableActivity.this);
+                builder.setTitle("Playlist name");
+                builder.setCancelable(true);
+                final EditText input = new EditText(SearchableActivity.this);
+                // Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
+                input.setInputType(InputType.TYPE_CLASS_TEXT );
+                builder.setView(input);
+                builder.setPositiveButton(
+                        "Create",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                createnewplaylist(input.getText().toString());
+                                addTracksToPlaylist(findPlaylistIdByName(input.getText().toString()),s);
+                            }
+                        });
+
+                builder.setNegativeButton(
+                        "Cancel",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                dialog.cancel();
+                            }
+                        });
+
+                AlertDialog alert = builder.create();
+                alert.show();
+            }
+            public Long findPlaylistIdByName(String name){
+
+                Long id;
+                final ContentResolver resolver = SearchableActivity.this.getContentResolver();
+                final Uri uri = MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI;
+                final String idKey = MediaStore.Audio.Playlists._ID;
+                final String nameKey = MediaStore.Audio.Playlists.NAME;
+
+                final String[] columns = { idKey, nameKey };
+                final Cursor playLists = resolver.query(uri, columns,nameKey +" = ?", new String[]{name}, null);
+                if (playLists == null) {
+                    return null;
+                }else {
+                    String playlist_id = null;
+
+                    for (boolean hasItem = playLists.moveToFirst(); hasItem; hasItem = playLists.moveToNext()) {
+                        playlist_id = playLists.getString(playLists.getColumnIndex(idKey));
+                        return Long.valueOf(playlist_id);
+                    }
+                }
+                return null;
+            }
+            public void createnewplaylist(String playlistname) {
+                ContentValues mInserts = new ContentValues();
+                mInserts.put(MediaStore.Audio.Playlists.NAME, playlistname);
+                mInserts.put(MediaStore.Audio.Playlists.DATE_ADDED, System.currentTimeMillis());
+                mInserts.put(MediaStore.Audio.Playlists.DATE_MODIFIED, System.currentTimeMillis());
+                SearchableActivity.this.getContentResolver().insert(MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI, mInserts);
+            }
+
         }
     }
 }

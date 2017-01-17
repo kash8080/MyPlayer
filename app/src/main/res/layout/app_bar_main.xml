@@ -12,7 +12,6 @@
     android:gravity="bottom"
     sothree:umanoDragView="@+id/dragView"
     android:clickable="true"
-    app:umanoParallaxOffset="10dp"
     sothree:umanoShadowHeight="4dp">
 
     <android.support.design.widget.CoordinatorLayout

@@ -1,5 +1,6 @@
 package com.androidplay.rahul.myplayer;
 
+import android.animation.ObjectAnimator;
 import android.app.AlertDialog;
 
 import android.Manifest;
@@ -19,6 +20,7 @@ import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.RemoteException;
 import android.preference.PreferenceManager;
 import android.provider.MediaStore;
 import android.provider.SearchRecentSuggestions;
@@ -30,6 +32,10 @@ import android.support.v4.app.Fragment;
 
 
 import android.support.v4.content.ContextCompat;
+import android.support.v4.media.MediaMetadataCompat;
+import android.support.v4.media.session.MediaControllerCompat;
+import android.support.v4.media.session.MediaSessionCompat;
+import android.support.v4.media.session.PlaybackStateCompat;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v4.view.ViewPager;
 
@@ -38,6 +44,7 @@ import android.support.v7.widget.SearchView;
 import android.text.InputType;
 import android.transition.TransitionInflater;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
@@ -47,15 +54,22 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.nostra13.universalimageloader.core.ImageLoader;
 import com.sothree.slidinguppanel.SlidingUpPanelLayout;
+import com.transitionseverywhere.Slide;
+import com.transitionseverywhere.Transition;
+import com.transitionseverywhere.TransitionManager;
+import com.transitionseverywhere.TransitionValues;
+import com.transitionseverywhere.extra.Scale;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -64,7 +78,7 @@ import de.hdodenhof.circleimageview.CircleImageView;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener,
         ViewPager.OnPageChangeListener,View.OnClickListener,recycler_adapter.adaptr,
-        ApplicationController.informactivity,SeekBar.OnSeekBarChangeListener,SlidingUpPanelLayout.PanelSlideListener{
+        SeekBar.OnSeekBarChangeListener,SlidingUpPanelLayout.PanelSlideListener{
 
     private final int read_external=11001;
     int menuid = 0;
@@ -73,6 +87,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     //ui elements
     ActionBarDrawerToggle toggle;
     DrawerLayout drawer;
+    Toolbar bottom_control_toolbar;
     NavigationView navigationView;
     TextView songname;
     TextView artistname;
@@ -107,18 +122,32 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     //CallbackManager mCallbackmanager;
     ImageLoader imageLoader;
     de.hdodenhof.circleimageview.CircleImageView profileimage;
-    /*LoginButton loginbtn;
-    Profile profile;
-    AccessToken token;
-    AccessTokenTracker tokentracker;
-    ProfileTracker profileTracker;
-*/    CoordinatorLayout coordinatorlayout;
-        LinearLayout slidercontrolcolour;
-/*
-    static {
-        AppCompatDelegate.setCompatVectorFromResourcesEnabled(true);
-    }*/
-    ///------ --------- -------------  -------------   -------------
+
+    CoordinatorLayout coordinatorlayout;
+    LinearLayout slidercontrolcolour;
+
+    MediaControllerCompat controllerCompat;
+    PlaybackStateCompat currentPlaybackstate ;
+    MediaMetadataCompat currentmetadata ;
+    LinearLayout recView_tablayout;
+
+    private MediaControllerCompat.Callback callback=new MediaControllerCompat.Callback() {
+        @Override
+        public void onPlaybackStateChanged(PlaybackStateCompat state) {
+            Log.i("mjkl","playbackstate change callback");
+            super.onPlaybackStateChanged(state);
+            currentPlaybackstate=state;
+            setstate(state);
+        }
+
+        @Override
+        public void onMetadataChanged(MediaMetadataCompat metadata) {
+            Log.i("mjkl","metadata change callback");
+            super.onMetadataChanged(metadata);
+            currentmetadata=metadata;
+            setmetadata(metadata);
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -147,7 +176,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             }else{
                 super.onCreate(savedInstanceState);
             }
-
         }
 
         //overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
@@ -173,8 +201,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
         String sync = String.valueOf(sharedPref.getBoolean("check", false));
 
-        setrepeatbutton();
-        setshufflebutton();
+        setrepeatbutton(false);
+        setshufflebutton(false);
         isrepeat=con.isRepeat();
         isshuffle=con.isShuffle();
 
@@ -191,7 +219,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         //for facebook
         //fb_setup();
-
+        connectControllerToSession(con.getMediaSessionToken());
         Log.i("llllp","on create end");
     }
 
@@ -241,7 +269,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         coordinatorlayout=(CoordinatorLayout)findViewById(R.id.main_content);
         appBarLayout=(AppBarLayout) findViewById(R.id.MyAppbar);
         slidercontrolcolour=(LinearLayout) findViewById(R.id.grad_bottom_slide);
-
+        bottom_control_toolbar=(Toolbar)findViewById(R.id.bottom_control_toolbar);
+        recView_tablayout=(LinearLayout)findViewById(R.id.ssss);
         //sliding player setup
         image = (ImageView) findViewById(R.id.bar_image);
         slider=(SlidingUpPanelLayout)findViewById(R.id.sliding_layout);
@@ -268,6 +297,20 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         slider.addPanelSlideListener(this);
     }
 
+    private void connectControllerToSession(MediaSessionCompat.Token token) {
+        try {
+            controllerCompat=new MediaControllerCompat(this,token);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+        PlaybackStateCompat stateCompat=controllerCompat.getPlaybackState();
+        MediaMetadataCompat metadataCompat=controllerCompat.getMetadata();
+        currentPlaybackstate=stateCompat;
+        currentmetadata=metadataCompat;
+        setstate(stateCompat);
+        setmetadata(metadataCompat);
+    }
+
     public Fragment getFragment(int position){
         return adapter.getFragment(position);
     }
@@ -277,9 +320,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         if (drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
         } else {
-
+            if(slider.getPanelState()== SlidingUpPanelLayout.PanelState.EXPANDED){
+                slider.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
+            }else {
                 super.onBackPressed();
-
+            }
         }
     }
 
@@ -402,6 +447,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         toggle.syncState();
     }
 
+    public void refreshFragment(int pos){
+        adapter.refreshFragment(pos);
+    }
 
     @Override
     public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
@@ -425,123 +473,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     }
 
-    public void setbutton(boolean a) {
-        if(slider.getPanelState()== SlidingUpPanelLayout.PanelState.EXPANDED){
-            return;
-        }
-        isplaying = a;
-        if (a) {
-            button.setImageResource(R.drawable.pause);
-
-        } else {
-           button.setImageResource(R.drawable.play);
-
-        }
-        seticon();
-    }
-
-    public void setcard(boolean a, songs song) {
-        setbutton(a);
-        path = song.getImagepath();
-        if (song != null) {
-            Log.i("klkl", "song!=null..setting card");
-            try {
-                String name = song.getName();
-                String artist = song.getArtist();
-                songname.setText(name);
-                artistname.setText(artist);
-                Bitmap bitmap = BitmapFactory.decodeFile(song.getImagepath());
-                if (bitmap != null) {
-                    image.setImageBitmap(bitmap);
-                    imageslide.setImageBitmap(bitmap);
-                } else {
-                    image.setImageResource(R.drawable.mp3full);
-                    imageslide.setImageResource(R.drawable.mp3full);
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            image.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            imageslide.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        }
-    }
-
-    public void seticon(){
-        if(isplaying){
-            Log.i("llll","isplaying");
-            //play_pause.setImageResource(R.drawable.pause_white);
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                play_pause.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.avd_play_to_pause_white));
-                Drawable drawable = play_pause.getDrawable();
-                ((Animatable) drawable).start();
-            }else{
-                play_pause.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.pause_white));
-            }
-
-        }else{
-            //play_pause.setImageResource(R.drawable.play_white);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                play_pause.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.avd_pause_to_play_white));
-                Drawable drawable = play_pause.getDrawable();
-                ((Animatable) drawable).start();
-            }else{
-                play_pause.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.play_white));
-            }
-        }
-
-    }
-    public void refreshview(){
-
-        Log.i("lllll","refresh");
-        current_song=con.getsong();
-        setdata();
-    }
-    public void setdata(){
-        try {
-            isplaying=con.isPlaying();
-            Long timemilli=con.getDuration();
-
-            int timesec=Integer.parseInt(String.valueOf(timemilli/1000L));
-            Log.i("kkkk","total time of current song is :"+timesec/60+":"+timesec%60);
-            total.setText(gettime(timesec));
-            Current_time=gettime(Integer.parseInt(String.valueOf(con.getcurrentplaybacktime()/1000L)));
-
-            current.setText(Current_time);
-            Log.i("lllll","setdata");
-            bitmap= BitmapFactory.decodeFile(current_song.getImagepath());
-
-            if(bitmap!=null){
-                image.setImageBitmap(bitmap);
-               slidercontrolcolour.setBackground(ContextCompat.getDrawable(this,R.drawable.grad));
-            }
-            else {
-                image.setImageResource(R.drawable.mp3full);
-            }
-            Log.i("mmmm","setdata: getDuration setmax"+(String.valueOf(Integer.parseInt(String.valueOf(timemilli/1000L)))));
-            setmax=timemilli;
-            seekBar.setMax(Integer.parseInt(String.valueOf(timemilli /1000L )));
-            //seekBar.setMax(con.getDuration());
-            Log.i("lllll","----"+String.valueOf(timemilli));
-            seticon();
-
-        }catch (Exception e){}
-    }
-    public String gettime(int secs){
-        int min=secs/60;
-        int sec=secs%60;
-        String time;
-        if(sec<10){
-            time=String.valueOf(min)+":0"+String.valueOf(sec);
-
-        }else{
-            time=String.valueOf(min)+":"+String.valueOf(sec);
-
-        }
-        return time;
-
-    }
-
     @Override
     public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
         Log.i("lllll","progress changed :");
@@ -560,65 +491,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     }
 
-    public void setrepeatbutton(){
-        if(isrepeat){
-            repeat.setImageResource(R.drawable.repeat_selected);
-        }else      repeat.setImageResource(R.drawable.repeat);
-    }
-    public void setshufflebutton(){
-        if(isshuffle){
-            shuffle.setImageResource(R.drawable.shuffle_selected);
-        }else      shuffle.setImageResource(R.drawable.shuffle);
-    }
-
     @Override
     public void onStopTrackingTouch(SeekBar seekBar) {
 
     }
 
-    @Override
-    public void setcardss(songs song) {
-
-        set_card_visibility();
-        Log.i("llll", "setcardss");
-        setcard(true, song);
-    }
-
-    public void set_card_visibility(){
-        Log.i("klkl", String.valueOf(con.isnull()) +"  "+String.valueOf(con.isPlaying()));
-
-         if (!con.isnull() && con.getsong()!=null){
-             int ii=this.getResources().getInteger(R.integer.panelheight);
-             slider.setPanelHeight(ii);
-             slider.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
-
-/*
-            card.setVisibility(View.VISIBLE);
-            shadow.setVisibility(View.VISIBLE);
-            */
-        }else{
-            slider.setPanelState(SlidingUpPanelLayout.PanelState.HIDDEN);
-        }
-
-    }
-    @Override
-    public void playnextsong() {
-        isplaying = con.isPlaying();
-        setcard(isplaying, con.getsong());
-
-        //slide
-        refreshview();
-        seekBar.setProgress(0);
-    }
-
-    @Override
-    public void refresh() {
-        Log.i("bnbnn","minact refresh");
-
-        isplaying = con.isPlaying();
-        setcard(isplaying, con.getsong());
-        refreshview();
-    }
     public void updateseekbarAsync() {
         Long dur=con.getDuration()/1000L;
         Log.i("mmmm","updateseekbar main .. method called");
@@ -710,21 +587,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
     }
 
-
-    @Override
-    public void updateprofileimage() {
-        Log.i("qqqq", "updateprofileimage ");
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        seekbarasync.cancel(true);
-        seekbarasync.canrun=false;
-        //tokentracker.stopTracking();
-        //profileTracker.stopTracking();
-    }
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -787,88 +649,94 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
                     return;
                 }
-                if (isplaying) {
-                    isplaying = false;
-                    con.pause();
-                    //setbutton(false);
-                    //button.setImageResource(R.drawable.play);
-                    button.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.avd_pause_to_play));
-                    Drawable drawable = button.getDrawable();
+                currentPlaybackstate=controllerCompat.getPlaybackState();
+                if(currentPlaybackstate!=null) {
+                    Log.i("mjkl", "current playback state is not null bar_button click");
 
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                        ((Animatable) drawable).start();
+                    MediaControllerCompat.TransportControls controls = controllerCompat.getTransportControls();
+                    switch (currentPlaybackstate.getState()) {
+                        case PlaybackStateCompat.STATE_PLAYING: {
+                            Log.i("mjkl", "state playing state to pause");
+                            controls.pause();
+                            break;
+                        }
+                        case PlaybackStateCompat.STATE_PAUSED: {
+                            Log.i("mjkl", "paused state to play");
+                            controls.play();
+                            break;
+                        }
+                        default: {
+                            controls.play();
+                            Log.i("mjkl", "unhandled state " + currentPlaybackstate.getState());
+                        }
                     }
-                    seticon();
-                } else {
-                    isplaying = true;
-                    con.resume();
-                    //setbutton(true);
-                    //button.setImageResource(R.drawable.pause);
-                    button.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.avd_play_to_pause));
-                    Drawable drawable = button.getDrawable();
-
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                        ((Animatable) drawable).start();
-                    }
-                    seticon();
+                }else{
+                    Log.i("mjkl", "current playback state is null bar_button click");
+                    con.playsong(0);
                 }
+                return;
+            }
+
+            case R.id.play_pause :{
+                Log.i("mmmm","playpause");
+                // Log.i("mmmm",String.valueOf(con.getCurrentPosition())+"---"+String.valueOf(con.getlist().size()));
+                currentPlaybackstate=controllerCompat.getPlaybackState();
+                if(currentPlaybackstate!=null) {
+                    Log.i("mjkl", "current playback state is not null play_pause click");
+
+                    MediaControllerCompat.TransportControls controls = controllerCompat.getTransportControls();
+                    switch (currentPlaybackstate.getState()) {
+                        case PlaybackStateCompat.STATE_PLAYING: {
+                            Log.i("mjkl", "state playing state to pause");
+                            controls.pause();
+                            break;
+                        }
+                        case PlaybackStateCompat.STATE_PAUSED: {
+                            Log.i("mjkl", "paused state to play");
+                            controls.play();
+                            break;
+                        }
+                        default:
+                            Log.i("mjkl", "unhandled state " + currentPlaybackstate.getState());
+
+                    }
+                }else{
+                    Log.i("mjkl", "current playback state is null play_pause click");
+
+                    con.playsong(0);
+                }
+
                 return;
             }
             case R.id.previous :{
+                previous.animate().scaleX(1.25f).scaleY(1.25f).setDuration(0).withEndAction(new Runnable() {
+                    @Override
+                    public void run() {
+                        previous.animate().scaleX(1).scaleY(1).setDuration(300).start();
+                    }
+                });
+
                 Log.i("lllll","previous");
                 seekBar.setProgress(0);
                 con.playprev();
-                refreshview();
+                //refreshview();
                 seekBar.setProgress(0);
-                return;
-            }
-            case R.id.play_pause :{
-                Log.i("mmmm","playpause");
-                Log.i("mmmm",String.valueOf(con.getCurrentPosition())+"---"+String.valueOf(con.getlist().size()));
-                isplaying=con.isPlaying();
-                Log.i("mmmm",String.valueOf(isplaying));
 
-                if(isplaying){
-                    try{con.pause();isplaying=false;
-                        seticon();
-                    }catch (Exception e){}
-                }else{
-                    try{
-                        if(con.getCurrentPosition()==0 && con.getlist()!=null ){
-                            if(con.getlist().size()>0) {
-                                if(con.getcurrentplaybacktime()>1000L){
-                                    con.resume();
-                                    isplaying=true;
-                                    seticon();
-                                }else {
-                                    Log.i("mmmm", "playpause not playing -1 null");
-                                    con.playsong(0);
-                                    isplaying=true;
-                                    seticon();
-                                    refreshview();
-
-                                }
-                            }
-                        }
-                        else {
-                            Log.i("mmmm","resuming");
-
-                            con.resume();
-                            isplaying = true;
-                            seticon();
-                        }
-                    }catch (Exception e){}
-                }
                 return;
             }
             case R.id.next :{
                 Log.i("mmmm","next---------------");
+                next.animate().scaleX(1.25f).scaleY(1.25f).setDuration(0).withEndAction(new Runnable() {
+                    @Override
+                    public void run() {
+                        next.animate().scaleX(1).scaleY(1).setDuration(300).start();
+                    }
+                });
 
                 Log.i("lllll","next");
                 seekBar.setProgress(0);
                 con.playnext();
-
-                refreshview();
+                //refreshview();
                 seekBar.setProgress(0);
                 return;
             }
@@ -880,11 +748,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 if(isrepeat){
                     isrepeat=false;
                     con.setRepeat(false);
-                    setrepeatbutton();
+                    setrepeatbutton(true);
                 }else{
                     isrepeat=true;
                     con.setRepeat(true);
-                    setrepeatbutton();
+                    setrepeatbutton(true);
                 }
                 return;
             }
@@ -893,11 +761,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 if(isshuffle){
                     isshuffle=false;
                     con.setShuffle(false);
-                    setshufflebutton();
+                    setshufflebutton(true);
                 }else{
                     isshuffle=true;
                     con.setShuffle(true);
-                    setshufflebutton();
+                    setshufflebutton(true);
                 }
                 return;
             }
@@ -912,19 +780,20 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     protected void onResume() {
         Log.i("llllp","onresume");
         super.onResume();
-        /*
+
+        //((playlist)adapter.getFragment(2)).refreshview();
         //animation for tablayout
-        //AnimatorSet set=new AnimatorSet();
-        int size=this.getResources().getInteger(R.integer.animationsize);
+        /*int size=this.getResources().getInteger(R.integer.animationsize);
         ObjectAnimator object1=ObjectAnimator.ofFloat(tablayout,"translationY",-size,0);
         object1.setDuration(500);
+        tablayout.setVisibility(View.VISIBLE);
         object1.start();
-        //set.playTogether(object1);
-        //set.start();
-*/
+        */
+
+        controllerCompat.registerCallback(callback);
+        currentPlaybackstate=controllerCompat.getPlaybackState();
+        currentmetadata=controllerCompat.getMetadata();
         set_card_visibility();
-
-
         try {
             Log.i("klkl", "onresume");
             if (con.isPlaying()) {
@@ -938,7 +807,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     setcard(false, null);
                 }
             }
-
         } catch (Exception e) {}
 
 
@@ -948,40 +816,41 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         seekbarasync =new updateseekbar1();
         seekbarasync.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
-
         isplaying=con.isPlaying();
         refreshview();
-        seticon();
+        seticon(false);
         Log.i("llllp","on resume end");
     }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+        seekbarasync.cancel(true);
+        seekbarasync.canrun=false;
+        controllerCompat.unregisterCallback(callback);
 
-    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+        //tokentracker.stopTracking();
+        //profileTracker.stopTracking();
+    }
+
     //to prevent user from opening navigation view while in action mode
     public void lockdrawer(){
         if(drawer!=null) {
             drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
-            String currentDateandTime = sdf.format(new Date());
-            Log.i("colortiming","tablayout color change "+currentDateandTime);
             changecolor change=new changecolor();
             //0 for lock 1 for unlock
             change.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,0);
         }
     }
-
     //to restore navigation view after action mode
     public void releasedrawer(){
         if(drawer!=null) {
             drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
-            String currentDateandTime = sdf.format(new Date());
-            Log.i("colortiming","tablayout color restore "+currentDateandTime);
-
             changecolor change=new changecolor();
             //0 for lock 1 for unlock
             change.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,1);
         }
     }
-
     public class changecolor extends AsyncTask<Integer,Void,Void>{
 
         int i;
@@ -1005,7 +874,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         protected void onPostExecute(Void aVoid) {
             if(i==0){
                 if (Build.VERSION.SDK_INT >= 21) {
-                   // MainActivity.this.getWindow().setStatusBarColor(Color.rgb(69, 90, 100));
+                    // MainActivity.this.getWindow().setStatusBarColor(Color.rgb(69, 90, 100));
                     MainActivity.this.getWindow().setStatusBarColor(con.getPrimary());
                 }
                 //colorprimarylight
@@ -1021,6 +890,242 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 tablayout.setBackgroundColor(con.getPrimary());
             }
             super.onPostExecute(aVoid);
+        }
+    }
+
+
+
+    //-----ui elements methods
+    public void setrepeatbutton(boolean animation){
+        if(isrepeat){
+            repeat.setImageResource(R.drawable.repeat_selected);
+        }else      repeat.setImageResource(R.drawable.repeat);
+
+        if(animation) {
+            repeat.animate().scaleX(1.25f).scaleY(1.25f).setDuration(0).withEndAction(new Runnable() {
+                @Override
+                public void run() {
+                    repeat.animate().scaleX(1).scaleY(1).setDuration(300).start();
+                }
+            });
+        }
+    }
+    public void setshufflebutton(boolean animation){
+        if(isshuffle){
+            shuffle.setImageResource(R.drawable.shuffle_selected);
+        }else      shuffle.setImageResource(R.drawable.shuffle);
+
+        if(animation) {
+            shuffle.animate().scaleX(1.25f).scaleY(1.25f).setDuration(0).withEndAction(new Runnable() {
+                @Override
+                public void run() {
+                    shuffle.animate().scaleX(1).scaleY(1).setDuration(300).start();
+                }
+            });
+        }
+    }
+
+    public void seticon(boolean a){
+        Log.i("seticon","start---");
+
+        isplaying=con.isPlaying();
+        if(isplaying){
+            Log.i("seticon","isplaying");
+            //play_pause.setImageResource(R.drawable.pause_white);
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && a && slider.getPanelState()== SlidingUpPanelLayout.PanelState.EXPANDED) {
+                play_pause.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.avd_play_to_pause_white));
+                Drawable drawable = play_pause.getDrawable();
+                ((Animatable) drawable).start();
+            }else{
+                play_pause.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.pause_white));
+            }
+
+        }else{
+            Log.i("seticon","!isplaying");
+
+            //play_pause.setImageResource(R.drawable.play_white);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && a &&  slider.getPanelState()== SlidingUpPanelLayout.PanelState.EXPANDED) {
+                play_pause.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.avd_pause_to_play_white));
+                Drawable drawable = play_pause.getDrawable();
+                ((Animatable) drawable).start();
+            }else{
+                play_pause.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.play_white));
+            }
+        }
+        setbutton(a);
+        Log.i("seticon","seticon end---");
+
+    }
+
+    public void setbutton(boolean a) {
+        Log.i("seticon","setbutto start---");
+
+        isplaying=con.isPlaying();
+        if (isplaying) {
+            Log.i("seticon","isplaying button");
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && a &&  slider.getPanelState()== SlidingUpPanelLayout.PanelState.COLLAPSED) {
+                button.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.avd_play_to_pause));
+                Drawable drawable = button.getDrawable();
+                ((Animatable) drawable).start();
+            }else{
+                button.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.pause));
+            }
+        } else {
+            Log.i("seticon","!isplaying button");
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && a &&  slider.getPanelState()== SlidingUpPanelLayout.PanelState.COLLAPSED) {
+                button.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.avd_pause_to_play));
+                Drawable drawable = button.getDrawable();
+                ((Animatable) drawable).start();
+            }else{
+                button.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.play));
+            }
+        }
+        Log.i("seticon","setbuttn end---");
+
+    }
+    public void refreshview(){
+
+        Log.i("lllll","refresh");
+        current_song=con.getsong();
+        setdata();
+        if(current_song!=null) {
+            setcard(con.isPlaying(), con.getsong());
+        }
+    }
+    public void setdata(){
+        try {
+            Log.i("mjkl","setdata");
+
+            isplaying=con.isPlaying();
+            Long timemilli=con.getDuration();
+
+            int timesec=Integer.parseInt(String.valueOf(timemilli/1000L));
+            Log.i("kkkk","total time of current song is :"+timesec/60+":"+timesec%60);
+            total.setText(gettime(timesec));
+            Current_time=gettime(Integer.parseInt(String.valueOf(con.getcurrentplaybacktime()/1000L)));
+
+            current.setText(Current_time);
+            Log.i("lllll","setdata");
+            bitmap= BitmapFactory.decodeFile(current_song.getImagepath());
+
+            if(bitmap!=null){
+
+                image.setImageBitmap(bitmap);
+                slidercontrolcolour.setBackground(ContextCompat.getDrawable(this,R.drawable.grad));
+            }
+            else {
+                image.setImageResource(R.drawable.mp3full);
+            }
+            Log.i("mmmm","setdata: getDuration setmax"+(String.valueOf(Integer.parseInt(String.valueOf(timemilli/1000L)))));
+            setmax=timemilli;
+            seekBar.setMax(Integer.parseInt(String.valueOf(timemilli /1000L )));
+            //seekBar.setMax(con.getDuration());
+            Log.i("lllll","----"+String.valueOf(timemilli));
+            seticon(false);
+
+        }catch (Exception e){e.printStackTrace();
+            Log.i("mjkl","exception---");
+        }
+    }
+    public String gettime(int secs){
+        int min=secs/60;
+        int sec=secs%60;
+        String time;
+        if(sec<10){
+            time=String.valueOf(min)+":0"+String.valueOf(sec);
+
+        }else{
+            time=String.valueOf(min)+":"+String.valueOf(sec);
+
+        }
+        return time;
+
+    }
+
+    //from recycler adapter
+    @Override
+    public void setcardss(songs song) {
+
+        set_card_visibility();
+        Log.i("llll", "setcardss");
+        setcard(true, song);
+    }
+
+    public void set_card_visibility(){
+        Log.i("klkl", String.valueOf(con.isnull()) +"  "+String.valueOf(con.isPlaying()));
+
+        if (!con.isnull() && con.getsong()!=null){
+            int ii=this.getResources().getInteger(R.integer.panelheight);
+            slider.setPanelHeight(ii);
+            slider.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
+        }else{
+            slider.setPanelState(SlidingUpPanelLayout.PanelState.HIDDEN);
+        }
+
+    }
+
+    public void setcard(boolean a, songs song) {
+        seticon(false);
+        path = song.getImagepath();
+        if (song != null) {
+            Log.i("klkl", "song!=null..setting card");
+            try {
+                String name = song.getName();
+                String artist = song.getArtist();
+                songname.setText(name);
+                artistname.setText(artist);
+                Bitmap bitmap = BitmapFactory.decodeFile(song.getImagepath());
+                if (bitmap != null) {
+                    image.setImageBitmap(bitmap);
+                    imageslide.setImageBitmap(bitmap);
+                } else {
+                    image.setImageResource(R.drawable.mp3full);
+                    imageslide.setImageResource(R.drawable.mp3full);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            image.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            imageslide.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        }
+    }
+
+    public void setmetadata(MediaMetadataCompat metadataCompat){
+        refreshview();
+    }
+    public void setstate(PlaybackStateCompat stateCompat){
+        if(stateCompat!=null) {
+            Log.i("mjkl", "setstate state is not null");
+
+            switch (stateCompat.getState()) {
+                case PlaybackStateCompat.STATE_PLAYING: {
+                    Log.i("mjkl", "set state playing state ");
+                    seticon(true);
+                    break;
+                }
+                case PlaybackStateCompat.STATE_NONE: {
+                    Log.i("mjkl", "set state none state ");
+                    break;
+                }
+                case PlaybackStateCompat.STATE_PAUSED: {
+                    Log.i("mjkl", "set state paused state ");
+                    seticon(true);
+                    break;
+                }
+                case PlaybackStateCompat.STATE_BUFFERING: {
+                    Log.i("mjkl", "set state buffering state ");
+                    break;
+                }
+                default:
+                    Log.i("mjkl", "unhandled state " + stateCompat.getState());
+            }
+        }else{
+            Log.i("mjkl", "setstate state is null");
+
+            seticon(false);
         }
     }
 
