@@ -7,6 +7,9 @@
     <item android:title="Play"
         android:id="@+id/album_playall">
     </item>
+    <item android:title="More from artist"
+        android:id="@+id/album_morefromartist">
+    </item>
     <item android:title="Delete"
         android:id="@+id/album_delete">
     </item>

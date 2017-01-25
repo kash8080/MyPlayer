@@ -4,6 +4,7 @@ import android.animation.ObjectAnimator;
 import android.app.AlertDialog;
 
 import android.Manifest;
+import android.app.Dialog;
 import android.app.SearchManager;
 import android.content.ContentValues;
 import android.content.Context;
@@ -17,6 +18,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.Animatable;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -55,16 +57,19 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.PopupMenu;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.nostra13.universalimageloader.core.ImageLoader;
 import com.sothree.slidinguppanel.SlidingUpPanelLayout;
+import com.squareup.picasso.Picasso;
 import com.transitionseverywhere.Slide;
 import com.transitionseverywhere.Transition;
 import com.transitionseverywhere.TransitionManager;
@@ -72,6 +77,9 @@ import com.transitionseverywhere.TransitionValues;
 import com.transitionseverywhere.extra.Scale;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 
 import de.hdodenhof.circleimageview.CircleImageView;
@@ -89,48 +97,45 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     DrawerLayout drawer;
     Toolbar bottom_control_toolbar;
     NavigationView navigationView;
-    TextView songname;
-    TextView artistname;
-    ImageButton button;
     pageradapter adapter;
     TabLayout tablayout;
     ViewPager viewpager;
     Toolbar toolbar;
-    Toolbar card;
     AlertDialog.Builder builder;
     TextView nav_name;
     AppBarLayout appBarLayout;
-    String path;
     Bitmap bitmap;
     SharedPreferences sharedPref;
     ApplicationController con;
+    PopupMenu popup;
 
     //slidinglayout
+    Toolbar card;
+    String path;
     SlidingUpPanelLayout slider;
     ImageButton previous,next,play_pause,repeat,shuffle;
-    TextView current,total;
+    TextView current,total,songname,artistname;
     SeekBar seekBar;
     String Current_time;
-
+    ImageButton button;
     ImageView imageslide,image;
     updateseekbar1 seekbarasync;
     songs current_song;
     Long setmax=0L;
     public boolean isrepeat,isshuffle;
+    LinearLayout slidercontrolcolour;
 
-    //for facebook
-    //CallbackManager mCallbackmanager;
     ImageLoader imageLoader;
     de.hdodenhof.circleimageview.CircleImageView profileimage;
 
     CoordinatorLayout coordinatorlayout;
-    LinearLayout slidercontrolcolour;
 
     MediaControllerCompat controllerCompat;
     PlaybackStateCompat currentPlaybackstate ;
     MediaMetadataCompat currentmetadata ;
     LinearLayout recView_tablayout;
 
+    static Context context;
     private MediaControllerCompat.Callback callback=new MediaControllerCompat.Callback() {
         @Override
         public void onPlaybackStateChanged(PlaybackStateCompat state) {
@@ -151,9 +156,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        context=this;
         Log.i("llllp", "oncreate");
         con = new ApplicationController(this.getApplicationContext(), this);
-
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
         String thme=sharedPref.getString("THEME_LIST","1") ;
         switch (thme){
@@ -201,13 +206,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
         String sync = String.valueOf(sharedPref.getBoolean("check", false));
 
-        setrepeatbutton(false);
-        setshufflebutton(false);
-        isrepeat=con.isRepeat();
-        isshuffle=con.isShuffle();
-
-        set_card_visibility();
         imageLoader = ImageLoader.getInstance();
+        set_card_visibility();
         card.setContentInsetsAbsolute(0, 0);
 
         nav_tab_setup();
@@ -217,8 +217,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         profileimage=(CircleImageView)v.findViewById(R.id.profile_image);
         nav_name=(TextView)v.findViewById(R.id.nav_name) ;
 
-        //for facebook
-        //fb_setup();
+
         connectControllerToSession(con.getMediaSessionToken());
         Log.i("llllp","on create end");
     }
@@ -250,28 +249,30 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         adapter.addFragment(new home());
         adapter.addFragment(new Albums());
         adapter.addFragment(new playlist());
+        adapter.addFragment(new Artist());
         viewpager.setAdapter(adapter);
         viewpager.addOnPageChangeListener(this);
         tablayout.setupWithViewPager(viewpager);
 
     }
     private void initialise(){
-        songname = (TextView) findViewById(R.id.bar_name);
-        artistname = (TextView) findViewById(R.id.bar_artist);
-        button = (ImageButton) findViewById(R.id.bar_button);
         viewpager = (ViewPager) findViewById(R.id.pager);
         drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        card = (Toolbar) findViewById(R.id.controller_bar);
         navigationView = (NavigationView) findViewById(R.id.nav_view);
         tablayout = (TabLayout) findViewById(R.id.tablayout);
         builder = new AlertDialog.Builder(this);
         toolbar = (Toolbar) findViewById(R.id.toolbar);
         coordinatorlayout=(CoordinatorLayout)findViewById(R.id.main_content);
         appBarLayout=(AppBarLayout) findViewById(R.id.MyAppbar);
-        slidercontrolcolour=(LinearLayout) findViewById(R.id.grad_bottom_slide);
         bottom_control_toolbar=(Toolbar)findViewById(R.id.bottom_control_toolbar);
         recView_tablayout=(LinearLayout)findViewById(R.id.ssss);
+
         //sliding player setup
+        card = (Toolbar) findViewById(R.id.controller_bar);
+        slidercontrolcolour=(LinearLayout) findViewById(R.id.grad_bottom_slide);
+        songname = (TextView) findViewById(R.id.bar_name);
+        artistname = (TextView) findViewById(R.id.bar_artist);
+        button = (ImageButton) findViewById(R.id.bar_button);
         image = (ImageView) findViewById(R.id.bar_image);
         slider=(SlidingUpPanelLayout)findViewById(R.id.sliding_layout);
         previous=(ImageButton)findViewById(R.id.previous);
@@ -332,19 +333,22 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     public boolean onCreateOptionsMenu(Menu menu) {
         Log.i("cccc", "oncreateoptions menu");
         // Inflate the menu; this adds items to the action bar if it is present.
-        if (menuid == 2) {
+         if (menuid == 2) {
             Log.i("cccc", "menuid=2");
             getMenuInflater().inflate(R.menu.playlist, menu);
-        } else {
-// Associate searchable configuration with the SearchView
-           SearchManager searchManager =(SearchManager) getSystemService(Context.SEARCH_SERVICE);
+        } else if (menuid == 3) {
+             Log.i("cccc", "menuid=2");
+             getMenuInflater().inflate(R.menu.main_nosort, menu);
+         } else  {
+            // Associate searchable configuration with the SearchView
+            SearchManager searchManager =(SearchManager) getSystemService(Context.SEARCH_SERVICE);
 
-                getMenuInflater().inflate(R.menu.main, menu);
-                MenuItem item=menu.findItem(R.id.search_view);
-                SearchView searchView=(SearchView) MenuItemCompat.getActionView(item);
-                searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
+            getMenuInflater().inflate(R.menu.main, menu);
+            MenuItem item=menu.findItem(R.id.search_view);
+            SearchView searchView=(SearchView) MenuItemCompat.getActionView(item);
+            searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
 
-           // SearchView.SearchAutoComplete searchAutoComplete = (SearchView.SearchAutoComplete) searchView.findViewById(android.support.v7.appcompat.R.id.search_src_text);
+            // SearchView.SearchAutoComplete searchAutoComplete = (SearchView.SearchAutoComplete) searchView.findViewById(android.support.v7.appcompat.R.id.search_src_text);
             //searchAutoComplete.setHintTextColor(ContextCompat.getColor(this,R.color.colorSecondaryText));
 
         }
@@ -352,52 +356,152 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         return super.onCreateOptionsMenu(menu);
     }
 
+    public Context getcontext(){
+        return context;
+    }
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
 
-        if (id == R.id.add_new_playlist) {
-            builder.setTitle("Playlist name");
-            builder.setCancelable(true);
-            final EditText input = new EditText(this);
-            // Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
-            input.setInputType(InputType.TYPE_CLASS_TEXT );
-            builder.setView(input);
-           builder.setPositiveButton(
-                    "Create",
-                    new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int id) {
-                            createnewplaylist(input.getText().toString());
-                            viewpager.setAdapter(adapter);
-                            viewpager.setCurrentItem(2);
-                        }
-                    });
+        switch (id){
+            case R.id.add_new_playlist:{
+                context=this;
+                builder.setTitle("Playlist name");
+                builder.setCancelable(true);
+                final EditText input = new EditText(this);
+                // Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
+                input.setInputType(InputType.TYPE_CLASS_TEXT );
+                builder.setView(input);
+                builder.setPositiveButton(
+                        "Create",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                createnewplaylist(input.getText().toString());
+                                viewpager.setAdapter(adapter);
+                                viewpager.setCurrentItem(2);
+                            }
+                        });
+                builder.setNegativeButton(
+                        "Cancel",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                dialog.cancel();
+                            }
+                        });
 
-            builder.setNegativeButton(
-                    "Cancel",
-                    new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int id) {
-                            dialog.cancel();
-                        }
-                    });
 
-            AlertDialog alert = builder.create();
-            alert.show();
-            return true;
+                AlertDialog alert = builder.create();
+                try {
+                    alert.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+                }catch (Exception E){
+                    E.printStackTrace();
+                }
+                alert.show();
+                break;
+            }
+            case R.id.action_settings:{
+                startActivity(new Intent(this,settings.class));
+                break;
+            }
+            case R.id.sort_name:{
+                ArrayList<songs> mlist;
+                if(menuid==0){
+                     mlist=con.getAllsonglist();
+                }else if(menuid==1){
+                    mlist=((Albums)adapter.getFragment(1)).list;
+                }else{
+                    return true;
+                }
+                Collections.sort(mlist, new Comparator<songs>() {
+                    @Override
+                    public int compare(songs songs, songs t1) {
+                        return songs.getName().compareToIgnoreCase(t1.getName());
+                    }
+                });
+                if(menuid==0){
+                    ((home)adapter.getFragment(0)).rec_adapter.notifyDataSetChanged();
+                }else if(menuid==1){
+                    ((Albums)adapter.getFragment(1)).rec_adapter.notifyDataSetChanged();
+                }
+
+                break;
+            }
+            case R.id.sort_name_desc:{
+                ArrayList<songs> mlist;
+                if(menuid==0){
+                    mlist=con.getAllsonglist();
+                }else if(menuid==1){
+                    mlist=((Albums)adapter.getFragment(1)).list;
+                }else{
+                    return true;
+                }
+                Collections.sort(mlist, new Comparator<songs>() {
+                    @Override
+                    public int compare(songs songs, songs t1) {
+                        return -(songs.getName().compareToIgnoreCase(t1.getName()));
+                    }
+                });
+                if(menuid==0){
+                    ((home)adapter.getFragment(0)).rec_adapter.notifyDataSetChanged();
+                }else if(menuid==1){
+                    ((Albums)adapter.getFragment(1)).rec_adapter.notifyDataSetChanged();
+                }
+                break;
+            }
+            case R.id.sort_artist:{
+                ArrayList<songs> mlist;
+                if(menuid==0){
+                    mlist=con.getAllsonglist();
+                }else if(menuid==1){
+                    mlist=((Albums)adapter.getFragment(1)).list;
+                }else{
+                    return true;
+                }
+
+                Collections.sort(mlist, new Comparator<songs>() {
+                    @Override
+                    public int compare(songs songs, songs t1) {
+                        return songs.getArtist().compareToIgnoreCase(t1.getArtist());
+                    }
+                });
+                if(menuid==0){
+                    ((home)adapter.getFragment(0)).rec_adapter.notifyDataSetChanged();
+                }else if(menuid==1){
+                    ((Albums)adapter.getFragment(1)).rec_adapter.notifyDataSetChanged();
+                }
+                break;
+            }
+            case R.id.sort_artist_desc:{
+                ArrayList<songs> mlist;
+                if(menuid==0){
+                    mlist=con.getAllsonglist();
+                }else if(menuid==1){
+                    mlist=((Albums)adapter.getFragment(1)).list;
+                }else{
+                    return true;
+                }
+                Collections.sort(mlist, new Comparator<songs>() {
+                    @Override
+                    public int compare(songs songs, songs t1) {
+                        return -songs.getArtist().compareToIgnoreCase(t1.getArtist());
+                    }
+                });
+                if(menuid==0){
+                    ((home)adapter.getFragment(0)).rec_adapter.notifyDataSetChanged();
+                }else if(menuid==1){
+                    ((Albums)adapter.getFragment(1)).rec_adapter.notifyDataSetChanged();
+                }
+                break;
+            }
+            case R.id.clear_history:{
+                SearchRecentSuggestions suggestions = new SearchRecentSuggestions(this,
+                        MySuggestionProvider.AUTHORITY, MySuggestionProvider.MODE);
+                suggestions.clearHistory();
+                break;
+            }
+            default:return false;
         }
-
-        if (id == R.id.action_settings) {
-            startActivity(new Intent(this,settings.class));
-            return true;
-        }
-
-        if (id == R.id.clear_history) {
-            SearchRecentSuggestions suggestions = new SearchRecentSuggestions(this,
-                    MySuggestionProvider.AUTHORITY, MySuggestionProvider.MODE);
-            suggestions.clearHistory();
-            return true;
-        }
-        return false;
+        return true;
     }
 
     public void createnewplaylist(String playlistname) {
@@ -436,12 +540,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         return true;
     }
 
+    @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
         toggle.onConfigurationChanged(newConfig);
     }
 
-
+    @Override
     protected void onPostCreate(Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
         toggle.syncState();
@@ -585,12 +690,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             updateseekbarAsync();
             super.onProgressUpdate(values);
         }
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-       // mCallbackmanager.onActivityResult(requestCode,resultCode,data);
     }
 
     public void request_perm(){
@@ -780,16 +879,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     protected void onResume() {
         Log.i("llllp","onresume");
         super.onResume();
-
-        //((playlist)adapter.getFragment(2)).refreshview();
-        //animation for tablayout
-        /*int size=this.getResources().getInteger(R.integer.animationsize);
-        ObjectAnimator object1=ObjectAnimator.ofFloat(tablayout,"translationY",-size,0);
-        object1.setDuration(500);
-        tablayout.setVisibility(View.VISIBLE);
-        object1.start();
-        */
-
+        setrepeatbutton(false);
+        setshufflebutton(false);
         controllerCompat.registerCallback(callback);
         currentPlaybackstate=controllerCompat.getPlaybackState();
         currentmetadata=controllerCompat.getMetadata();
@@ -897,6 +988,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     //-----ui elements methods
     public void setrepeatbutton(boolean animation){
+        isrepeat=con.isRepeat();
         if(isrepeat){
             repeat.setImageResource(R.drawable.repeat_selected);
         }else      repeat.setImageResource(R.drawable.repeat);
@@ -911,6 +1003,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
     }
     public void setshufflebutton(boolean animation){
+        isshuffle=con.isShuffle();
         if(isshuffle){
             shuffle.setImageResource(R.drawable.shuffle_selected);
         }else      shuffle.setImageResource(R.drawable.shuffle);
@@ -1001,8 +1094,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
             isplaying=con.isPlaying();
             Long timemilli=con.getDuration();
-
+            Long timemillicurrent=con.getcurrentplaybacktime();
             int timesec=Integer.parseInt(String.valueOf(timemilli/1000L));
+            int timecurrentsec=Integer.parseInt(String.valueOf(timemillicurrent/1000L));
             Log.i("kkkk","total time of current song is :"+timesec/60+":"+timesec%60);
             total.setText(gettime(timesec));
             Current_time=gettime(Integer.parseInt(String.valueOf(con.getcurrentplaybacktime()/1000L)));
@@ -1013,15 +1107,27 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
             if(bitmap!=null){
 
-                image.setImageBitmap(bitmap);
+                //image.setImageBitmap(bitmap);
+                Picasso.with(this)
+                        .load(Uri.parse("file://"+current_song.getImagepath()))
+                        .error(R.drawable.guitar)
+                        .into(image);
+                slidercontrolcolour.setVisibility(View.VISIBLE);
                 slidercontrolcolour.setBackground(ContextCompat.getDrawable(this,R.drawable.grad));
             }
             else {
-                image.setImageResource(R.drawable.mp3full);
+                slidercontrolcolour.setVisibility(View.VISIBLE);
+
+                //image.setImageResource(R.drawable.mp3full);
+                Picasso.with(this)
+                        .load(R.drawable.guitar)
+                        .error(R.drawable.mp3full)
+                        .into(image);
             }
             Log.i("mmmm","setdata: getDuration setmax"+(String.valueOf(Integer.parseInt(String.valueOf(timemilli/1000L)))));
             setmax=timemilli;
-            seekBar.setMax(Integer.parseInt(String.valueOf(timemilli /1000L )));
+            seekBar.setMax(timesec);
+            seekBar.setProgress(timecurrentsec);
             //seekBar.setMax(con.getDuration());
             Log.i("lllll","----"+String.valueOf(timemilli));
             seticon(false);
@@ -1079,11 +1185,27 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 artistname.setText(artist);
                 Bitmap bitmap = BitmapFactory.decodeFile(song.getImagepath());
                 if (bitmap != null) {
-                    image.setImageBitmap(bitmap);
-                    imageslide.setImageBitmap(bitmap);
+                    //image.setImageBitmap(bitmap);
+                    //imageslide.setImageBitmap(bitmap);
+                    Picasso.with(this)
+                            .load(Uri.parse("file://"+song.getImagepath()))
+                            .error(R.drawable.mp3full)
+                            .into(image);
+                    Picasso.with(this)
+                            .load(Uri.parse("file://"+song.getImagepath()))
+                            .error(R.drawable.mp3full)
+                            .into(imageslide);
                 } else {
-                    image.setImageResource(R.drawable.mp3full);
-                    imageslide.setImageResource(R.drawable.mp3full);
+                    //image.setImageResource(R.drawable.mp3full);
+                    //imageslide.setImageResource(R.drawable.mp3full);
+                    Picasso.with(this)
+                            .load(R.drawable.guitar)
+                            .error(R.drawable.mp3full)
+                            .into(image);
+                    Picasso.with(this)
+                            .load(R.drawable.guitar)
+                            .error(R.drawable.mp3full)
+                            .into(imageslide);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -1099,15 +1221,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     public void setstate(PlaybackStateCompat stateCompat){
         if(stateCompat!=null) {
             Log.i("mjkl", "setstate state is not null");
-
             switch (stateCompat.getState()) {
                 case PlaybackStateCompat.STATE_PLAYING: {
                     Log.i("mjkl", "set state playing state ");
                     seticon(true);
-                    break;
-                }
-                case PlaybackStateCompat.STATE_NONE: {
-                    Log.i("mjkl", "set state none state ");
                     break;
                 }
                 case PlaybackStateCompat.STATE_PAUSED: {
@@ -1115,16 +1232,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     seticon(true);
                     break;
                 }
-                case PlaybackStateCompat.STATE_BUFFERING: {
-                    Log.i("mjkl", "set state buffering state ");
-                    break;
-                }
                 default:
-                    Log.i("mjkl", "unhandled state " + stateCompat.getState());
             }
         }else{
-            Log.i("mjkl", "setstate state is null");
-
             seticon(false);
         }
     }

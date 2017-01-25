@@ -200,6 +200,10 @@ public class home extends Fragment{
         AlertDialog alert = builder.create();
         alert.show();
     }
+    public void share_contextual(){
+        rec_adapter.share_contextual();
+    }
+
     public void removeSelection(){
         if(canremoveSelection){
             rec_adapter.removeSelection();

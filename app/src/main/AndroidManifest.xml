@@ -5,7 +5,6 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
@@ -28,6 +27,9 @@
 
         <activity
             android:name="com.androidplay.rahul.myplayer.open_playlist"
+            android:theme="@style/AppTheme" />
+        <activity
+            android:name="com.androidplay.rahul.myplayer.ChooseArtistAlbum"
             android:theme="@style/AppTheme" />
 
         <activity
@@ -63,6 +65,7 @@
                 <action android:name="android.intent.action.MEDIA_BUTTON" />
             </intent-filter>
         </service>
+
 
         <activity
             android:name="com.androidplay.rahul.myplayer.settings"

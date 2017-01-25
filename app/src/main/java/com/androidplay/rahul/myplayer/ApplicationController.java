@@ -1,5 +1,6 @@
 package com.androidplay.rahul.myplayer;
 
+import android.app.Activity;
 import android.app.Application;
 import android.app.PendingIntent;
 import android.content.ComponentName;
@@ -8,6 +9,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.content.pm.FeatureInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
@@ -46,17 +48,20 @@ public class ApplicationController extends Application {
     public static Context applicationcontext;
     public static Context activitycontext;
 
-    public static String currenntlistof ;
+    public static String currenntlistof="" ;
     public static boolean withimages=false;
-
+    private static ApplicationController thiscontext;
     private static playerservice musicSrv;
     public static ArrayList<songs> allsonglist ;
+
+    //to restore list
     public static ArrayList<songs> currentactivitySavedList;
     public static ArrayList<String> currentactivityalbumartlist;
 
     private static ContentResolver resolver;
     background loadimagesforallsongs;
     public static Long open_playlist_id=0L;
+    static boolean serviceconnected=false;
     ////////------------------------------------------
 
     public ApplicationController() {
@@ -82,16 +87,17 @@ public class ApplicationController extends Application {
     @Override
     public void onCreate() {
         Log.i("qwsd","con oncreate");
-
-       super.onCreate();
+        thiscontext=this;
+        super.onCreate();
         allsonglist=new ArrayList<>();
         resolver=this.getContentResolver();
 
         //music service setup start
-        if(playIntent==null){
+        if(playIntent==null) {
             playIntent = new Intent(this, playerservice.class);
-            bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE);
+            Log.i("qwsd", "con try");
             startService(playIntent);
+            bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE);
         }
         //music service setup end
 
@@ -105,21 +111,12 @@ public class ApplicationController extends Application {
     @Override
     public void onTerminate() {
         Log.i("qwsd","con onterminate");
-
         super.onTerminate();
-/*
         loadimagesforallsongs.cancel(true);
-
-        if(playIntent!=null) {
-            try{
-                stopService(playIntent);
-            }catch (Exception e){}
-        }
-        */
     }
 
     ///for connectiong to the service
-    private ServiceConnection musicConnection = new ServiceConnection(){
+    public static   ServiceConnection musicConnection = new ServiceConnection(){
 
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
@@ -128,16 +125,23 @@ public class ApplicationController extends Application {
             musicSrv = binder.getService();
             //pass list
             //musicSrv.setMylist(mylist);
-
             if(activitycontext!=null){
                 musicSrv.setcontext(activitycontext);
             }
+            //musicSrv.removefromforeground();
+            serviceconnected=true;
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
+            Log.i("qwsd","con service unbinded");
+            //Log.i("qwsd","con service data="+musicSrv.currentsongno);
+            serviceconnected=false;
+            musicSrv=null;
+
         }
     };
+
 
     public void loadsongswithimages(){
         Log.i("llllp","load with images");
@@ -232,6 +236,16 @@ public class ApplicationController extends Application {
 
         }
     }
+    private boolean isWifiDirectSupported(Context ctx) {
+        PackageManager pm = ctx.getPackageManager();
+        FeatureInfo[] features = pm.getSystemAvailableFeatures();
+        for (FeatureInfo info : features) {
+            if (info != null && info.name != null && info.name.equalsIgnoreCase("android.hardware.wifi.direct")) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     //to update current list of songs of current activity(playlist,album etc) .
     public static void setMylist(ArrayList<songs> list,String from,boolean withimg) {
@@ -239,7 +253,7 @@ public class ApplicationController extends Application {
         ApplicationController.currenntlistof=from;
         ApplicationController.withimages=withimg;
         musicSrv.setMylist(list);
-        Log.i("clist","set my list --current list of- "+currenntlistof);
+        Log.i("qwsd","set my list --current list of- "+currenntlistof);
 
         //to reset current playlist or album id
         open_playlist_id=0L;
@@ -326,14 +340,14 @@ public class ApplicationController extends Application {
     public static boolean isRepeat() {
         return musicSrv.isRepeat();
     }
-    public static void setRepeat(boolean repeat) {
+    public void setRepeat(boolean repeat) {
         musicSrv.setRepeat(repeat);
+
     }
     public static boolean isShuffle() {
         return musicSrv.isShuffle();
     }
     public void setShuffle(boolean shuffle) {
-
         musicSrv.setShuffle(shuffle);
 
     }
@@ -351,6 +365,7 @@ public class ApplicationController extends Application {
     }
 
     public int getPrimary(){
+
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(activitycontext);
         String thme=sharedPref.getString("THEME_LIST","1") ;
         switch (thme){
@@ -362,6 +377,7 @@ public class ApplicationController extends Application {
             case "6":return ContextCompat.getColor(activitycontext,R.color.colorPrimarybrown);
             default:return ContextCompat.getColor(activitycontext,R.color.colorPrimary);
         }
+
     }
     public int getPrimaryDark(){
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(activitycontext);
@@ -422,9 +438,9 @@ public class ApplicationController extends Application {
         Log.i("llllp","fetch list");
         String[] proj={android.provider.MediaStore.Audio.Media.TITLE,
                 MediaStore.Audio.Media.ALBUM_ID,MediaStore.Audio.Media._ID,
-                android.provider.MediaStore.Audio.Media.ARTIST};
-        //using mediaplayer
-
+                android.provider.MediaStore.Audio.Media.ARTIST,
+                MediaStore.Audio.Media.DATA,
+                };
 
 
         Uri musicUri = android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
@@ -453,6 +469,8 @@ public class ApplicationController extends Application {
                     (MediaStore.Audio.Media._ID);
             int artistColumn = musicCursor.getColumnIndex
                     (android.provider.MediaStore.Audio.Media.ARTIST);
+            int datacolumn = musicCursor.getColumnIndex
+                    (MediaStore.Audio.Media.DATA);
 
 
             //add songs to list
@@ -461,8 +479,9 @@ public class ApplicationController extends Application {
                 long thisId = musicCursor.getLong(idColumn);
                 String thisTitle = musicCursor.getString(titleColumn);
                 String thisArtist = musicCursor.getString(artistColumn);
+                String thisdata = musicCursor.getString(datacolumn);
 
-                allsonglist.add(new songs(thisId, thisTitle, thisArtist,"",albumid));
+                allsonglist.add(new songs(thisId, thisTitle, thisArtist,"",albumid,thisdata));
 
             }
             while (musicCursor.moveToNext());

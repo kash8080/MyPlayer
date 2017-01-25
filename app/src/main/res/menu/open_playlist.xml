@@ -17,4 +17,8 @@
         android:orderInCategory="4"
         android:id="@+id/open_Remove">
     </item>
+    <item android:title="Share"
+        android:orderInCategory="5"
+        android:id="@+id/open_share">
+    </item>
 </menu>

@@ -58,8 +58,8 @@
 
         <item name="tabIndicatorColor">?attr/colorAccent</item>
         <item name="tabIndicatorHeight">2dp</item>
-        <item name="tabPaddingStart">12dp</item>
-        <item name="tabPaddingEnd">12dp</item>
+        <item name="tabPaddingStart">15dp</item>
+        <item name="tabPaddingEnd">15dp</item>
         <item name="tabTextAppearance">@style/MyCustomTabTextAppearance</item>
         <item name="tabSelectedTextColor">#ffffff</item>
     </style>

@@ -1,8 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<android.support.design.widget.CoordinatorLayout
+<com.sothree.slidinguppanel.SlidingUpPanelLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:sothree="http://schemas.android.com/apk/res-auto"
+
+    android:id="@+id/sliding_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_gravity="bottom"
+    android:gravity="bottom"
+    sothree:umanoDragView="@+id/dragView2"
+    android:clickable="true"
+    sothree:umanoShadowHeight="4dp">
+
+<android.support.design.widget.CoordinatorLayout
 
     android:id="@+id/main_content"
     android:layout_width="match_parent"
@@ -10,8 +22,7 @@
     style="@style/AppTheme"
     android:background="#ffffff"
     android:transitionName="albummain"
-
-    android:fitsSystemWindows="true">
+    >
 
     <android.support.design.widget.AppBarLayout
         android:id="@+id/MyAppbar"
@@ -38,6 +49,7 @@
                 <LinearLayout
                     android:orientation="vertical"
                     android:layout_width="match_parent"
+                    android:layout_marginBottom="?actionBarSize"
                     android:layout_height="match_parent">
                     <LinearLayout
                         android:orientation="horizontal"
@@ -238,7 +250,15 @@
         app:layout_anchor="@id/desc_bar"
         />
 
-
 </android.support.design.widget.CoordinatorLayout>
 
+
+    <include
+        layout="@layout/sliding_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        >
+    </include>
+
+</com.sothree.slidinguppanel.SlidingUpPanelLayout>
 

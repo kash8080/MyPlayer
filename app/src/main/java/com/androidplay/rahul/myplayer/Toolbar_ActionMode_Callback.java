@@ -43,17 +43,6 @@ public boolean onCreateActionMode(ActionMode mode, Menu menu) {
 
 @Override
 public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
-    String currentDateandTime = sdf.format(new Date());
-
-    Log.i("colortiming","onprepare "+currentDateandTime);
-
-//Sometimes the menu will not be visible so for that we need to set their visibility manually in this method
-//So here show action menu according to SDK Levels
-/*
-menu.findItem(R.id.contextual_remove).setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER);
-menu.findItem(R.id.contextual_delete).setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER);
-menu.findItem(R.id.contextual_addtoplaylist).setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER);
-*/
     return true;
 }
 
@@ -71,11 +60,13 @@ public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
            mode.finish();//Finish action mode
             break;
         case R.id.contextual_addtoplaylist:
-
             ((home)f).addtoplaylist_contextual();
             mode.finish();//Finish action mode
             break;
-
+        case R.id.contextual_share:
+            ((home)f).share_contextual();
+            mode.finish();//Finish action mode
+            break;
     }
     return false;
 }

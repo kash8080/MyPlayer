@@ -15,14 +15,19 @@ public class songs implements Serializable {
     private Long id;
     private String imagepath ;
     private int no_of_songs ;
-    Bitmap bitmap;
     boolean clicked=false;
-    public Bitmap getBitmap() {
-        return bitmap;
+    private String Data="";
+
+    //for artist
+    private String numberOfAlbums;
+    private String numberOfTracks;
+    private String artistkey;
+    public String getData() {
+        return Data;
     }
 
-    public void setBitmap(Bitmap bitmap) {
-        this.bitmap = bitmap;
+    public void setData(String data) {
+        Data = data;
     }
 
     private Long album_id;
@@ -42,18 +47,43 @@ public class songs implements Serializable {
         this.imagepath = imagepath;
         this.no_of_songs = no_of_songs;
     }
-    public songs(Long id, String name, String artist, String imagepath,Long album_id) {
+    public songs(Long id, String name, String artist, String imagepath,Long album_id,String Data) {
         this.id = id;
         this.name = name;
         this.artist = artist;
         this.imagepath = imagepath;
         this.album_id = album_id;
+        this.Data=Data;
     }
     public songs(Long id, String name, String artist) {
         this.id = id;
         this.name = name;
         this.artist = artist;
         this.album_id=album_id;
+    }
+    //for artist
+    public songs(Long id, String name, String numberofalbums,String numberOfTracks,String artistkey){
+        this.id = id;
+        this.name = name;
+        this.numberOfAlbums = numberofalbums;
+        this.numberOfTracks=numberOfTracks;
+        this.artistkey=artistkey;
+
+        String str="";
+        str=str.concat(numberofalbums);
+        if(numberofalbums.equals("1")){
+            str = str.concat(" Album  ");
+        }else {
+            str = str.concat(" Albums  ");
+        }
+        str=str.concat(numberOfTracks);
+        if(numberOfTracks.equals("1")){
+            str=str.concat(" Track");
+        }else {
+            str=str.concat(" Tracks");
+        }
+        this.artist=str;
+
     }
     public String getImagepath() {
         return imagepath;
@@ -111,5 +141,29 @@ public class songs implements Serializable {
 
     public void setImage(String image) {
         this.image = image;
+    }
+
+    public String getNumberOfAlbums() {
+        return numberOfAlbums;
+    }
+
+    public void setNumberOfAlbums(String numberOfAlbums) {
+        this.numberOfAlbums = numberOfAlbums;
+    }
+
+    public String getNumberOfTracks() {
+        return numberOfTracks;
+    }
+
+    public void setNumberOfTracks(String numberOfTracks) {
+        this.numberOfTracks = numberOfTracks;
+    }
+
+    public String getArtistkey() {
+        return artistkey;
+    }
+
+    public void setArtistkey(String artistkey) {
+        this.artistkey = artistkey;
     }
 }

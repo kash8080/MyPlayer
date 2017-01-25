@@ -9,4 +9,8 @@
         android:id="@+id/now_playing_removefromqueue"
         >
     </item>
+    <item android:title="Share"
+        android:id="@+id/now_playing_share"
+        >
+    </item>
 </menu>

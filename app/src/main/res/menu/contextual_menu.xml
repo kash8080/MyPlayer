@@ -20,4 +20,12 @@
         android:title="Add to playlist"
         app:showAsAction="never"
         />
+    <item
+        android:id="@+id/contextual_share"
+        android:icon="@drawable/share_white"
+
+        android:orderInCategory="1"
+        android:title="Share"
+        app:showAsAction="ifRoom"
+        />
 </menu>

@@ -1,6 +1,7 @@
 package com.androidplay.rahul.myplayer;
 
 import android.animation.ObjectAnimator;
+import android.app.Activity;
 import android.app.ActivityOptions;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
@@ -21,8 +22,10 @@ import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.CardView;
 import android.transition.TransitionInflater;
+import android.util.DisplayMetrics;
 import android.util.Pair;
 import android.view.Window;
+import android.view.WindowManager;
 import android.widget.PopupMenu;
 import android.support.v7.widget.RecyclerView;
 import android.text.InputType;
@@ -54,7 +57,6 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
     String id;
     adaptr face;
     ContentResolver resolver;
-
     AlertDialog.Builder builder;
 
     //for animation set
@@ -67,7 +69,7 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
     songs currentPlayingSong;
     public boolean imagesset=false;
     Long playlistIdForMultipleAdd;
-
+    DisplayMetrics displaymetrics;
 
     public interface adaptr{
         public void setcardss(songs song);
@@ -81,6 +83,7 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
 
     public recycler_adapter(Context context,ArrayList<songs> list,String id) {
 
+
         mSelectedItemsIds = new SparseBooleanArray();
         Log.i("llll", "construcor adapter"+id);
         this.context = context;
@@ -92,22 +95,18 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
             this.id="open_album";
             con.setMylist(songs_list,"open_album",imagesset);
 
-            con.playsong(0);
         }else {
             this.id = id;
         }
         Log.i("llll", "--");
 
-        //load images for every song list except allsongs
-        // which is already loaded with images in application controller
-        if(!(id.equals("allsongs")||id.equals("now_playing") || id.equals("playlist"))) {
-            background back1 = new background();
-            Log.i("llll", "--");
-            back1.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,songs_list);
-            Log.i("llll", "--");
+        if(id.equals("allsongs_noanimation")){
+            cananimate=false;
+            id="allsongs";
+            this.id="allsongs";
         }
 
-        if(id.equals("allsongs") ||id.equals("playlist") ||id.equals("album") ) {
+        if(id.equals("allsongs") ||id.equals("playlist") ||id.equals("album") || id.equals("artist") ) {
             face = (adaptr) context;
             Log.i("llll", "--");
         }
@@ -116,6 +115,8 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
             Log.i("llll", "--");
         }
 
+        displaymetrics = new DisplayMetrics();
+        ((Activity) context).getWindowManager().getDefaultDisplay().getMetrics(displaymetrics);
 
         Log.i("llll", "construcor adapter end"+id);
         resolver=context.getContentResolver();
@@ -128,9 +129,20 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
          if(id.equals("album")){
              Log.i("llll","album");
             view= LayoutInflater.from(context).inflate(R.layout.album_row,parent,false);
-        }else{Log.i("llll","else");
-            view= LayoutInflater.from(context).inflate(R.layout.custom_row,parent,false);}
 
+             //set height of cardview=width
+             int width = displaymetrics.widthPixels;
+             int n=context.getResources().getInteger(R.integer.columncount);
+             width=width/n;
+             ViewGroup.LayoutParams params = view.getLayoutParams();
+             params.height = (int) (width * 1.3);
+             view.setLayoutParams(params);
+         }else if(id.equals("playlist") || id.equals("artist")){
+             view= LayoutInflater.from(context).inflate(R.layout.circular_custom_row,parent,false);
+         }else{
+             Log.i("llll","else");
+             view= LayoutInflater.from(context).inflate(R.layout.custom_row,parent,false);
+         }
 
         viewholder vh= new viewholder(view);
         return vh;
@@ -140,25 +152,21 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
     public void onBindViewHolder(final viewholder holder, final int position) {
         Log.i("animt","onBindView at pos"+String.valueOf(position));
 
+
         songs current=songs_list.get(position);
         String path="";
-        if( id.equals("allsongs")){
+        /*if( id.equals("allsongs")){
+            //all songs are stored in application context with images
              path=con.getimagepathforsong(position);
         }else {
              path = current.getImagepath();
         }
+*/
+        path = current.getImagepath();
         try {
-            Log.i("hjuhu", path);
-        }catch (Exception e){e.printStackTrace();}
-        Bitmap bitmap = null;
-        try {
-           // bitmap = BitmapFactory.decodeFile(path);
-
-            //if(bitmap!=null){
-            if(path!=null && path.length()>0){
+            if(path!=null && path.length()>0 && !id.equals("open_album")){
                 Log.i("llll", "bitmap!null");
-                //holder.image.setImageBitmap(bitmap);
-
+                //dont assign images to songs in open_album
                 Picasso.with(context)
                         .load(Uri.parse("file://"+path))
                         .error(R.drawable.mp3)
@@ -168,26 +176,20 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
 
                 if(id.equals("playlist")){
                     Log.i("llll", "playlist");
-                    holder.image.setImageResource(R.drawable.playlist1);
-                }else{
-                    if(id.equals("album")){
-                        holder.image.setImageResource(R.drawable.mp3full);
-                    }else{
-                        if(id.equals("open_album")){
-                            holder.image.setImageResource(R.drawable.album);
-                        } else {
-
-                            holder.image.setImageResource(R.drawable.mp3);
-                        }
-                     }
+                    //holder.image.setImageResource(R.drawable.playlist1);
+                }else if(id.equals("album")){
+                    holder.image.setImageResource(R.drawable.mp3full);
+                }else if(id.equals("open_album")){
+                    holder.image.setImageResource(R.drawable.album);
+                }else if(id.equals("artist")){
+                    holder.circularimage.setImageResource(R.drawable.artist);
+                }else {
+                    holder.image.setImageResource(R.drawable.mp3);
                 }
-            }
-            if(id.equals("open_album")){
-                holder.image.setImageResource(R.drawable.album);
+
             }
         } catch (Exception e) {
-
-            Log.i("llll", "fffff");
+            e.printStackTrace();
         }
 
         holder.image.setScaleType(ImageView.ScaleType.CENTER_CROP);
@@ -195,9 +197,7 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
         holder.artist.setText(current.getArtist());
 
         if(!id.equals("album")) {
-
-            holder.contextual_colour.setBackgroundColor(mSelectedItemsIds.get(position) ? 0x55aaaaaa
-                    : Color.TRANSPARENT);
+            holder.contextual_colour.setBackgroundColor(mSelectedItemsIds.get(position) ? 0x55aaaaaa: Color.TRANSPARENT);
             if(mActionModeSet) {
                 holder.options.setVisibility(View.INVISIBLE);
             }else{
@@ -214,7 +214,6 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
             startpos = position;
         }
     }
-//0x9934B5E4
     @Override
     public int getItemCount() {
         if(songs_list!=null){
@@ -234,7 +233,7 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
         LinearLayout contextual_colour;
         View item;
         CardView card;
-
+        de.hdodenhof.circleimageview.CircleImageView circularimage;
         public viewholder(View itemView) {
             super(itemView);
             item=itemView;
@@ -255,6 +254,9 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
                 itemView.setOnClickListener(this);
                 contextual_colour=(LinearLayout)itemView.findViewById(R.id.backgroundcolour);
 
+                if(id.equals("artist")){
+                    circularimage=(de.hdodenhof.circleimageview.CircleImageView)itemView.findViewById(R.id.cicular_drawable);
+                }
             }
 
             options.setOnClickListener(this);
@@ -263,6 +265,7 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
 
         @Override
         public void onClick(final View v) {
+            Log.i("hjgh","onclick id="+id);
 
             if(mActionModeSet){
                 //this prevents song playing on double tapping in actionmode
@@ -280,12 +283,15 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
                 }else if(id.equals("now_playing")){
                     /// ppopup menu for playlists options
                     handle_nowPlaying_options(v);
+                }else if(id.equals("artist")){
+                    /// ppopup menu for playlists options
+                    handle_artist_options(v);
                 }
 
             }else if(v.getId()==R.id.album_options) {
                 handle_album_options(v);
             }else if(v.getId()==R.id.album_image){
-                open_album("false",v);
+                open_album(false,v);
             }else
             // whole item click for song selection
                 handleClick(v);
@@ -326,10 +332,13 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
                 con.setMylist(songs_list,"open_playlist",imagesset);
                 con.open_playlist_id=((open_playlist)context).current_id;
                 con.playsong(getLayoutPosition());
-
+                ((open_playlist)context).refreshfab();
+            }else if(id.equals("artist")){
+                open_artist(false,songs_list.get(getLayoutPosition()).getName());
             }
         }
         public void handleSongsOptions(final View v){
+            Log.i("hjgh","handle songs options");
             popup=new PopupMenu(context,v);
             popup.getMenuInflater().inflate(R.menu.songs_options,popup.getMenu());
             popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
@@ -403,12 +412,67 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
                             alert.show();
                             return true;
                         }
+                        case R.id.psongs_Rename: {
+                            builder.setTitle("Playlist name");
+                            builder.setCancelable(true);
+                            // Set up the input
+                            final EditText input = new EditText(context);
+                            input.setInputType(InputType.TYPE_CLASS_TEXT );
+                            String s=songs_list.get(getLayoutPosition()).getName();
+                            input.setText(s);
+                            input.setSelection(0,s.length());
+                            builder.setView(input);
+                            builder.setPositiveButton(
+                                    "Rename",
+                                    new DialogInterface.OnClickListener() {
+                                        public void onClick(DialogInterface dialog, int id) {
+                                            String str=input.getText().toString();
+                                            int pos=getLayoutPosition();
+                                            Long idd=songs_list.get(pos).getId();
+                                            ContentValues values = new ContentValues();
+                                            values.put(MediaStore.Audio.Media.TITLE,str);
+                                            songs_list.get(pos).setName(str);
+                                            resolver.update(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                                                    values, "_id=" + idd, null);
+                                            notifyItemChanged(pos);
+                                        }
+                                    });
+
+                            builder.setNegativeButton(
+                                    "Cancel",
+                                    new DialogInterface.OnClickListener() {
+                                        public void onClick(DialogInterface dialog, int id) {
+                                            dialog.cancel();
+                                        }
+                                    });
+
+                            AlertDialog alert = builder.create();
+                            try {
+                                alert.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+                            }catch (Exception E){
+                                E.printStackTrace();
+                            }
+                            alert.show();
+                            return true;
+                        }
                         case R.id.psongs_playnext: {
                             con.addSongtoNextPos(songs_list.get(getLayoutPosition()));
                             return true;
                         }
                         case R.id.psongs_addtoqueue: {
                             add_to_queue(songs_list.get(getLayoutPosition()));
+                            return true;
+                        }
+                        case R.id.psongs_moreFromArtist: {
+                            open_artist(false,songs_list.get(getLayoutPosition()).getArtist());
+                            return true;
+                        }
+                        case R.id.psongs_OpenAlbum: {
+                            openAlbumforSong();
+                            return true;
+                        }
+                        case R.id.psongs_share: {
+                            shareSong(songs_list.get(getLayoutPosition()).getData());
                             return true;
                         }
                     }
@@ -426,7 +490,7 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
                 public boolean onMenuItemClick(MenuItem item) {
                     if(item.getItemId()==R.id.Oplaylist_open){
                         openplaylist();
-                    } else if(item.getItemId()==R.id.Oplaylist_delete){
+                    }else if(item.getItemId()==R.id.Oplaylist_delete){
                         builder.setMessage("Are you sure you want to delete : "+songs_list.get(getLayoutPosition()).getName());
                         builder.setCancelable(true);
                         builder.setPositiveButton(
@@ -457,6 +521,9 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
                         // Set up the input
                         final EditText input = new EditText(context);
                         input.setInputType(InputType.TYPE_CLASS_TEXT );
+                        String s=songs_list.get(getLayoutPosition()).getName();
+                        input.setText(s);
+                        input.setSelection(0,s.length());
                         builder.setView(input);
                         builder.setPositiveButton(
                                 "Rename",
@@ -483,7 +550,14 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
                                 });
 
                         AlertDialog alert = builder.create();
+                        try {
+                            alert.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+                        }catch (Exception E){
+                            E.printStackTrace();
+                        }
                         alert.show();
+                    }if(item.getItemId()==R.id.Oplaylist_addtoQueue){
+                        new addPlaylistToQueue().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,songs_list.get(getLayoutPosition()).getId());
                     }
                     return true;
                 }
@@ -508,6 +582,8 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
                         return true;
                     }else if(item.getItemId()==R.id.open_AddToQueue){
                         add_to_queue(songs_list.get(getLayoutPosition()));
+                    }else if(item.getItemId()==R.id.open_share){
+                        shareSong(songs_list.get(getLayoutPosition()).getData());
                     }
                     return true;
                 }
@@ -526,6 +602,9 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
                         // remove from queue i.e from arreylist of service
                         con.remove_song(getLayoutPosition());
                         notifyItemRemoved(getLayoutPosition());
+                    }else if(item.getItemId()==R.id.now_playing_share){
+                        shareSong(songs_list.get(getLayoutPosition()).getData());
+
                     }
                     return true;
                 }
@@ -538,13 +617,55 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
             popup.getMenuInflater().inflate(R.menu.album,popup.getMenu());
             popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
                 public boolean onMenuItemClick(MenuItem item) {
+                    builder=new AlertDialog.Builder(context);
                     if(item.getItemId()==R.id.album_open){
-                        open_album("false",v);
+                        open_album(false,v);
                     } else if(item.getItemId()==R.id.album_playall){
-                        open_album("true",v);
+                        open_album(true,v);
+                    }else if(item.getItemId()==R.id.album_morefromartist){
+                        open_artist(false,songs_list.get(getLayoutPosition()).getArtist());
                     }else if(item.getItemId()==R.id.album_delete){
-                        deleteAlbum(songs_list.get(getLayoutPosition()).getId());
-                        notifyItemRemoved(getLayoutPosition());
+                        builder.setMessage("are you sure you want to delete "+songs_list.get(getLayoutPosition()).getName());
+                        builder.setCancelable(true) ;
+                        builder.setPositiveButton(
+                                "yes",
+                                new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int id) {
+                                        deleteAlbum(songs_list.get(getLayoutPosition()).getId());
+                                        notifyItemRemoved(getLayoutPosition());
+                                    }
+                                });
+
+                        builder.setNegativeButton(
+                                "no",
+                                new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int id) {
+                                        dialog.cancel();
+                                    }
+                                });
+
+                        AlertDialog alert = builder.create();
+                        alert.show();
+
+                    }
+                    return true;
+                }
+            });
+            popup.show();
+        }
+        public void handle_artist_options(final View v){
+
+            popup=new PopupMenu(context,v);
+            popup.getMenuInflater().inflate(R.menu.artist_options,popup.getMenu());
+            popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                public boolean onMenuItemClick(MenuItem item) {
+                    builder = new AlertDialog.Builder(context);
+                    if (item.getItemId() == R.id.artist_open) {
+                        open_artist(false,songs_list.get(getLayoutPosition()).getName());;
+                    }else if (item.getItemId() == R.id.artist_rename) {
+                        rename_artist();
+                    }else if (item.getItemId() == R.id.artist_delete) {
+                        delete_artist();
                     }
                     return true;
                 }
@@ -574,7 +695,7 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
            }
        }
 
-        public void open_album(String playall,View clickedView){
+        public void open_album(Boolean playall,View clickedView){
             Intent intent =new Intent(context,open_playlist.class);
             //using same activity to open playlists and albums
 
@@ -589,8 +710,6 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
                         options = ActivityOptions.makeSceneTransitionAnimation((AppCompatActivity) context,
                                 Pair.create((View) image, "albumTransition"), Pair.create((View) name, "albumname_transition"),
                                 Pair.create((View) artist, "albumartist_transition"),
-                                //Pair.create((View)((MainActivity) context).appBarLayout , "album_transition_appbar"),
-                                //Pair.create((View)card,"albummain"),
                                 Pair.create(((MainActivity) context).findViewById(android.R.id.navigationBarBackground), Window.NAVIGATION_BAR_BACKGROUND_TRANSITION_NAME),
                                 Pair.create(((MainActivity) context).findViewById(android.R.id.statusBarBackground), Window.STATUS_BAR_BACKGROUND_TRANSITION_NAME)
                         );
@@ -626,7 +745,183 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
                 context.startActivity(intent);
             }
         }
+        public void openAlbumforSong(){
+            final Uri uri = MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI;
+            final String _id = MediaStore.Audio.Albums._ID;
+            final String album_name = MediaStore.Audio.Albums.ALBUM;
+            final String artist = MediaStore.Audio.Albums.ARTIST;
+            final String albumart = MediaStore.Audio.Albums.ALBUM_ART;
+            final String tracks = MediaStore.Audio.Albums.NUMBER_OF_SONGS;
 
+            final String[] columns = { _id, album_name, artist, albumart, tracks };
+            Cursor cursor=null;
+            String Selection=_id+ " = ? ";
+            String[] args=new String[]{String.valueOf(songs_list.get(getLayoutPosition()).getAlbum_id())};
+            try {
+                cursor = resolver.query(uri, columns, Selection, args, album_name);
+            }catch (java.lang.SecurityException e){
+                e.printStackTrace();
+            }
+            if(cursor!=null && cursor.moveToFirst()){
+
+                Long id = Long.parseLong(cursor.getString(cursor.getColumnIndex(_id)));
+                String name = cursor.getString(cursor.getColumnIndex(album_name));
+                String artistt = cursor.getString(cursor.getColumnIndex(artist));
+                String pic = cursor.getString(cursor.getColumnIndex(albumart));
+
+                Intent intent=new Intent(context,open_playlist.class);
+                intent.putExtra("method", "album");
+                intent.putExtra("album_art",pic);
+                intent.putExtra("album_name", name);
+                intent.putExtra("album_playall", false);
+                intent.putExtra("album_id", id);
+                try {
+                    cursor.close();
+                }catch (Exception e ){
+                    e.printStackTrace();
+                }
+                context.startActivity(intent);
+            }else{
+                Toast.makeText(context,"No Album Found",Toast.LENGTH_SHORT).show();
+                try {
+                    cursor.close();
+                }catch (Exception e ){
+                    e.printStackTrace();
+                }
+            }
+
+        }
+        public void open_artist(Boolean playall,String artistname){
+
+            final Uri uri = MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI;
+            final String _id = MediaStore.Audio.Albums._ID;
+            final String album_name = MediaStore.Audio.Albums.ALBUM;
+            final String artist = MediaStore.Audio.Albums.ARTIST;
+            final String albumart = MediaStore.Audio.Albums.ALBUM_ART;
+
+            final String[] columns = { _id, album_name, artist, albumart};
+            String selection=artist +" = ? ";
+            String[] args=new String[]{artistname};
+            Cursor cursor=null;
+            try {
+                cursor = context.getContentResolver().query(uri, columns, selection,
+                        args,null);
+            }catch (Exception e){}
+            if(cursor!=null) {
+                int size = cursor.getCount();
+                if (size == 0) {
+                    Log.i("artistadaptr", "cursor==null or no album");
+                    Intent intent2 = new Intent(context, Now_playing.class);
+                    intent2.putExtra("artistname", artistname);
+                    intent2.putExtra("method", "artistsongs");
+                    try {
+                        cursor.close();
+                    }catch (Exception e ){
+                        e.printStackTrace();
+                    }
+                    context.startActivity(intent2);
+                }else if(size==1){
+                    if( cursor.moveToFirst()){
+                        Log.i("artistadaptr","cursor!=null");
+                        Intent intent = new Intent(context, open_playlist.class);
+
+                        Long id=Long.parseLong(cursor.getString(cursor.getColumnIndex(_id)));
+                        String name=cursor.getString(cursor.getColumnIndex(album_name));
+                        String artistt=cursor.getString(cursor.getColumnIndex(artist));
+                        String pic=cursor.getString(cursor.getColumnIndex(albumart));
+
+                        intent.putExtra("method", "album");
+                        intent.putExtra("album_art",pic);
+                        intent.putExtra("album_name", name);
+                        intent.putExtra("album_playall", playall);
+                        intent.putExtra("album_id",id);////////////////////
+                        try {
+                            cursor.close();
+                        }catch (Exception e ){
+                            e.printStackTrace();
+                        }
+                        context.startActivity(intent);
+
+                    }
+                }else{
+                    Intent intent = new Intent(context, ChooseArtistAlbum.class);
+                    intent.putExtra("artistname",artistname);
+                    try {
+                        cursor.close();
+                    }catch (Exception e ){
+                        e.printStackTrace();
+                    }
+                    context.startActivity(intent);
+                }
+            }
+        }
+        public void rename_artist(){
+            builder.setTitle("Playlist name");
+            builder.setCancelable(true);
+            // Set up the input
+            final EditText input = new EditText(context);
+            input.setInputType(InputType.TYPE_CLASS_TEXT );
+            String s=songs_list.get(getLayoutPosition()).getName();
+            input.setText(s);
+            input.setSelection(0,s.length());
+            final int pos=getLayoutPosition();
+            final Long idd=songs_list.get(pos).getId();
+
+            builder.setView(input);
+            builder.setPositiveButton(
+                    "Rename",
+                    new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                            String str=input.getText().toString();
+
+                            Uri uri = android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+                            String artist_id = MediaStore.Audio.Media.ARTIST_ID;
+
+                            ContentValues values = new ContentValues();
+                            values.put(android.provider.MediaStore.Audio.Media.ARTIST,str);
+                            songs_list.get(pos).setName(str);
+                            int i=resolver.update(uri,
+                                    values, artist_id +" = "+ idd, null);
+                            notifyItemChanged(pos);
+                            Log.i("artistedit","renamed result="+String.valueOf(i));
+                        }
+                    });
+
+            builder.setNegativeButton(
+                    "Cancel",
+                    new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                            dialog.cancel();
+                        }
+                    });
+
+            AlertDialog alert = builder.create();
+            try {
+                alert.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+            }catch (Exception E){
+                E.printStackTrace();
+            }
+            alert.show();
+        }
+        public void delete_artist(){
+            Log.i("artistedit","delete artist");
+
+            int i=getLayoutPosition();
+            //delete all songs of artist
+            String[] artistid =new String[]{String.valueOf(songs_list.get(getLayoutPosition()).getId())};
+            Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+            int ii=resolver.delete(uri, MediaStore.Audio.Media.ARTIST_ID + " = ? ",artistid);
+            if(ii==1){
+                Toast.makeText(context," Artist deleted",Toast.LENGTH_SHORT).show();
+            }else{
+                Toast.makeText(context,"Oops! Something went wrong.Please try again!",Toast.LENGTH_SHORT).show();
+
+            }
+            songs_list.remove(i);
+            notifyItemRemoved(i);
+            Log.i("artistedit","deleted result="+String.valueOf(ii));
+
+        }
         public void openplaylist(){
             Long id = songs_list.get(getLayoutPosition()).getId();
             Intent intent =new Intent(context,open_playlist.class);
@@ -682,6 +977,14 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
             ArrayList<songs> listt =new ArrayList<>();
             listt.add(song);
             con.addSongToList(listt);
+        }
+
+        public void shareSong(String data){
+            Uri uri= Uri.parse("file:///"+data);
+            Intent share = new Intent(Intent.ACTION_SEND);
+            share.setType("audio/mp3");
+            share.putExtra(Intent.EXTRA_STREAM, uri);
+            context.startActivity(Intent.createChooser(share, "Share Sound File"));
         }
         }
 
@@ -913,6 +1216,21 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
         }
     }
 
+    public class addPlaylistToQueue extends AsyncTask<Long,Void,Void>{
+        ArrayList<songs> list;
+        @Override
+        protected Void doInBackground(Long... params) {
+           list=DataFetch.getPlaylist(context,params[0]);
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void params) {
+            super.onPostExecute(params);
+            con.addSongToList(list);
+            Toast.makeText(context,"Playlist added to queue",Toast.LENGTH_SHORT).show();
+        }
+    }
 
     // action Mode Methods
 
@@ -1046,6 +1364,16 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
         delete.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,selectedsong_ids);
 
     }
+    public void share_contextual(){
+        ArrayList<Uri> selectedsong_pathuri;
+        selectedsong_pathuri=makeArrayOfPathUriFromSparseArray();
+        mSelectedItemsIds=new SparseBooleanArray();
+        notifyDataSetChanged();
+        Intent share = new Intent(Intent.ACTION_SEND_MULTIPLE);
+        share.setType("audio/mp3");
+        share.putParcelableArrayListExtra(Intent.EXTRA_STREAM, selectedsong_pathuri);
+        context.startActivity(Intent.createChooser(share, "Share Sound File"));
+    }
 
     public ArrayList<Long> makeArrayOfidsFromSparseArray(boolean removeFromRecyclerView){
         ArrayList<Long> selectedsong_ids =new ArrayList<>();
@@ -1061,6 +1389,20 @@ public class recycler_adapter extends RecyclerView.Adapter<recycler_adapter.view
                     notifyItemRemoved(position);//notify adapter
                 }
 
+            }
+        }
+        return selectedsong_ids;
+    }
+    public ArrayList<Uri> makeArrayOfPathUriFromSparseArray(){
+        ArrayList<Uri> selectedsong_ids =new ArrayList<>();
+        //Loop all selected ids
+        for (int i = (mSelectedItemsIds.size() - 1); i >= 0; i--) {
+            if (mSelectedItemsIds.valueAt(i)) {
+                int position=mSelectedItemsIds.keyAt(i);
+
+                String data=(songs_list.get(position).getData());
+                Uri uri= Uri.parse("file:///"+data);
+                selectedsong_ids.add(uri);
             }
         }
         return selectedsong_ids;

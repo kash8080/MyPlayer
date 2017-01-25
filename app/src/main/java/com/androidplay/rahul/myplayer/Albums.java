@@ -9,8 +9,10 @@ import android.provider.MediaStore;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
+import android.support.v7.widget.CardView;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -22,7 +24,7 @@ import xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScrol
 
 public class Albums extends Fragment {
 
-    String tag="albumss";
+    String tag="alb";
     RecyclerView rec_view;
     recycler_adapter rec_adapter;
     ArrayList<songs> list ;
@@ -32,6 +34,7 @@ public class Albums extends Fragment {
     ApplicationController con;
     boolean hassavedlist=false;
     boolean cancelled=false;
+
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -39,28 +42,33 @@ public class Albums extends Fragment {
         View v= inflater.inflate(R.layout.activity_albums,container,false);
         res=getActivity().getContentResolver();
         list=new ArrayList<>();
+        Log.i("album","on create");
 
+        /*
         if(savedInstanceState!=null) {
             String s = (String) savedInstanceState.get("instancesaved");
-            if (s != null && s.equals("true")) {
-                Log.i("dsad", "restored instance state");
+            if (s != null && s.equals("true") && con.albumslist!=null) {
+                Log.i("album", "restored instance state");
                 hassavedlist = true;
-                list = con.currentactivitySavedList;
+                list = con.albumslist;
+                loaded=true;
                 Log.i("activitystate", "list.size()=" + String.valueOf(list.size()));
             }
         }
-
+*/
 
         rec_view=(RecyclerView)v.findViewById(R.id.recview_albums);
 
         VerticalRecyclerViewFastScroller fastScroller = (VerticalRecyclerViewFastScroller) v.findViewById(R.id.fast_scroller1);
-
         // Connect the recycler to the scroller (to let the scroller scroll the list)
         fastScroller.setRecyclerView(rec_view);
-
         // Connect the scroller to the recycler (to let the recycler scroll the scroller's handle)
         rec_view.addOnScrollListener(fastScroller.getOnScrollListener());
 
+        loaded=false;
+        cancelled=false;
+        doasync inback=new doasync();
+        inback.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
 
         columncount=(int)this.getResources().getInteger(R.integer.columncount);
         mLayoutManager=new GridLayoutManager(getActivity(),columncount);
@@ -68,20 +76,9 @@ public class Albums extends Fragment {
 
         rec_view.setLayoutManager(mLayoutManager);
         rec_view.setAdapter(rec_adapter);
-        if(!hassavedlist){
-            //setlist();
-            doasync inback=new doasync();
-            inback.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
-        }
+
         Log.i("cccc","on create album");
         return v;
-    }
-
-    @Override
-    public void onResume() {
-        Log.i("dsad","on resume album");
-
-        super.onResume();
     }
 
     @Override
@@ -92,57 +89,67 @@ public class Albums extends Fragment {
 
     //need to do this in background
     public void setlist(){
-            Log.i("dsad","setting list");
-            final Uri uri = MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI;
-            final String _id = MediaStore.Audio.Albums._ID;
-            final String album_name = MediaStore.Audio.Albums.ALBUM;
-            final String artist = MediaStore.Audio.Albums.ARTIST;
-            final String albumart = MediaStore.Audio.Albums.ALBUM_ART;
-            final String tracks = MediaStore.Audio.Albums.NUMBER_OF_SONGS;
+        list.clear();
+        loaded=false;
+        Log.i("album","setting list");
+        final Uri uri = MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI;
+        final String _id = MediaStore.Audio.Albums._ID;
+        final String album_name = MediaStore.Audio.Albums.ALBUM;
+        final String artist = MediaStore.Audio.Albums.ARTIST;
+        final String albumart = MediaStore.Audio.Albums.ALBUM_ART;
+        final String tracks = MediaStore.Audio.Albums.NUMBER_OF_SONGS;
 
-            final String[] columns = { _id, album_name, artist, albumart, tracks };
-            Cursor cursor=null;
-           try {
-               cursor = res.query(uri, columns, null,
-                       null, MediaStore.Audio.Albums.ALBUM);
-           }catch (java.lang.SecurityException e){
-               e.printStackTrace();
-           }
-            Log.i(tag,"cursor loaded");
-            if(cursor!=null){
-                Log.i(tag,"cursor!=null");
-                while(cursor.moveToNext() && !cancelled){
-                Log.i(tag,"--");
-                Long id=Long.parseLong(cursor.getString(cursor.getColumnIndex(_id))); Log.i(tag,"--");
-                String name=cursor.getString(cursor.getColumnIndex(album_name));; Log.i(tag,"--");
-                String artistt=cursor.getString(cursor.getColumnIndex(artist));; Log.i(tag,"--");
-                String pic=cursor.getString(cursor.getColumnIndex(albumart));; Log.i(tag,"--");
-                int total=Integer.parseInt(cursor.getString(cursor.getColumnIndex(tracks)));; Log.i(tag,"--");
+        final String[] columns = { _id, album_name, artist, albumart, tracks };
+        Cursor cursor=null;
+       try {
+           cursor = res.query(uri, columns, null,
+                   null, album_name);
+       }catch (java.lang.SecurityException e){
+           e.printStackTrace();
+       }
+        Log.i(tag,"cursor loaded");
+        if(cursor!=null){
+            Log.i(tag,"cursor!=null");
+            cursor.moveToFirst();
+            do{
+                Log.i(tag, "--");
+                Long id = Long.parseLong(cursor.getString(cursor.getColumnIndex(_id)));
+                String name = cursor.getString(cursor.getColumnIndex(album_name));
+                String artistt = cursor.getString(cursor.getColumnIndex(artist));
+                String pic = cursor.getString(cursor.getColumnIndex(albumart));
+                int total = Integer.parseInt(cursor.getString(cursor.getColumnIndex(tracks)));
+                songs song = new songs(id, name, artistt, pic, total);
+                list.add(song);
+            }while(cursor.moveToNext() && !cancelled);
 
-                songs song =new songs(id,name,artistt,pic,total); Log.i(tag,"--");
-                list.add(song); Log.i(tag,"--");
-            }
-            try {
-                cursor.close();
-            }catch (Exception e ){
-                e.printStackTrace();
-            }
-
+        try {
+            cursor.close();
+        }catch (Exception e ){
+            e.printStackTrace();
         }
 
-            Log.i(tag,"setlist done");
+    }
+
+        Log.i("album","setlist done");
     }
 
     @Override
     public void onSaveInstanceState(Bundle outState) {
-        Log.i("activitystate","onsaveinstance");
-        if(list!=null && list.size()>0) {
-            outState.putString("instancesaved", "true");
-            con.currentactivitySavedList=list;
+        Log.i("album","onsaveinstance");
+        /*
+        if(list!=null && list.size()>0 && loaded) {
+            Log.i("album","saved list in controller");
 
+            outState.putString("instancesaved", "true");
+            con.albumslist=list;
+        }else{
+            outState.putString("instancesaved", "false");
+            con.albumslist=null;
         }
+        */
         super.onSaveInstanceState(outState);
     }
+    boolean loaded=false;
     public class doasync extends AsyncTask<Void,Void,Void> {
 
         @Override
@@ -154,9 +161,10 @@ public class Albums extends Fragment {
         @Override
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
+            loaded=true;
             if(!cancelled){
-                Log.i("dsad","adapternotified");
-                //rec_adapter.notifyDataSetChanged();
+                Log.i("album","adapternotified");
+                rec_adapter.notifyDataSetChanged();
             }
         }
     }

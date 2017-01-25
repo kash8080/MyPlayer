@@ -147,7 +147,10 @@ public class SearchableActivity extends AppCompatActivity {
         Log.i("llllp","fetch list");
         String[] proj={android.provider.MediaStore.Audio.Media.TITLE,
                 MediaStore.Audio.Media.ALBUM_ID,MediaStore.Audio.Media._ID,
-                android.provider.MediaStore.Audio.Media.ARTIST};
+                android.provider.MediaStore.Audio.Media.ARTIST,
+                MediaStore.Audio.Media.DATA,
+
+        };
         //using mediaplayer
 
 
@@ -175,6 +178,8 @@ public class SearchableActivity extends AppCompatActivity {
                     (MediaStore.Audio.Media._ID);
             int artistColumn = musicCursor.getColumnIndex
                     (android.provider.MediaStore.Audio.Media.ARTIST);
+            int datacolumn = musicCursor.getColumnIndex
+                    (MediaStore.Audio.Media.DATA);
 
 
             //add songs to list
@@ -183,8 +188,9 @@ public class SearchableActivity extends AppCompatActivity {
                 long thisId = musicCursor.getLong(idColumn);
                 String thisTitle = musicCursor.getString(titleColumn);
                 String thisArtist = musicCursor.getString(artistColumn);
+                String thisdata = musicCursor.getString(datacolumn);
 
-                search_result_list.add(new songs(thisId, thisTitle, thisArtist,"",albumid));
+                search_result_list.add(new songs(thisId, thisTitle, thisArtist,"",albumid,thisdata));
 
             }
             while (musicCursor.moveToNext());
@@ -251,18 +257,7 @@ public class SearchableActivity extends AppCompatActivity {
                         break;
                     }
                     default:{
-                        Long id=search_result_list.get(getLayoutPosition()).getId();
-                        songs song=ApplicationController.getSongById(id);
-                        if(song.getId().equals(0L)){
-                            Toast.makeText(SearchableActivity.this,"Error!",Toast.LENGTH_SHORT).show();
-                            finish();
-                        }else {
-                            ArrayList<songs> list = new ArrayList<>();
-                            list.add(song);
-                            ApplicationController.setMylist(list, "", false);
-                            ApplicationController.playsong(0);
-                            startActivity(new Intent(SearchableActivity.this, playerr.class));
-                        }
+                        playsong();
                     }
                 }
 
@@ -275,7 +270,7 @@ public class SearchableActivity extends AppCompatActivity {
                         int ids=item.getItemId();
                         switch (ids){
                             case R.id.psongs_play :{
-                                con.playsong(getLayoutPosition());
+                                playsong();
                                 return true;
                             }
                             case R.id.psongs_add_to_playlist: {
@@ -340,6 +335,10 @@ public class SearchableActivity extends AppCompatActivity {
                                 add_to_queue(search_result_list.get(getLayoutPosition()));
                                 return true;
                             }
+                            case R.id.psongs_share: {
+                                shareSong(search_result_list.get(getLayoutPosition()).getData());
+                                return true;
+                            }
                         }
                         return true;
                     }
@@ -347,6 +346,23 @@ public class SearchableActivity extends AppCompatActivity {
                 popup.show();
 
 
+            }
+            public void playsong(){
+                Long id=search_result_list.get(getLayoutPosition()).getId();
+                songs song=ApplicationController.getSongById(id);
+                if(song.getId().equals(0L)){
+                    Toast.makeText(SearchableActivity.this,"Error!",Toast.LENGTH_SHORT).show();
+                    finish();
+                }else {
+                    con.pause();
+                    ArrayList<songs> list = new ArrayList<>();
+                    list.add(song);
+                    Toast.makeText(SearchableActivity.this,"Playing "+song.getName(),Toast.LENGTH_LONG).show();
+                    ApplicationController.setMylist(list, "", false);
+                    ApplicationController.playsong(0);
+                    startActivity(new Intent(SearchableActivity.this, playerr.class));
+
+                }
             }
             public ArrayList<songs> get_playlist(){
                 ArrayList<songs> playlist_list=new ArrayList<>();
@@ -497,7 +513,13 @@ public class SearchableActivity extends AppCompatActivity {
                 mInserts.put(MediaStore.Audio.Playlists.DATE_MODIFIED, System.currentTimeMillis());
                 SearchableActivity.this.getContentResolver().insert(MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI, mInserts);
             }
-
+            public void shareSong(String data){
+                Uri uri= Uri.parse("file:///"+data);
+                Intent share = new Intent(Intent.ACTION_SEND);
+                share.setType("audio/mp3");
+                share.putExtra(Intent.EXTRA_STREAM, uri);
+                startActivity(Intent.createChooser(share, "Share Sound File"));
+            }
         }
     }
 }

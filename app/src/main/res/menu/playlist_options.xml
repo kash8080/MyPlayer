@@ -15,4 +15,8 @@
         android:id="@+id/Oplaylist_rename"
         >
     </item>
+    <item android:title="Add to Queue"
+        android:id="@+id/Oplaylist_addtoQueue"
+        >
+    </item>
 </menu>

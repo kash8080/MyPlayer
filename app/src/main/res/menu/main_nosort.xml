@@ -16,29 +16,6 @@
         android:title="Clear Search History"
         app:showAsAction="never"
         />
-    <item android:visible="true"
-        android:id="@+id/m_area"
-        android:title="Sort By"
-        android:enabled="true">
-        <menu>
-            <item
-                android:id="@+id/sort_name"
-                android:title="Song Name"
-                />
-            <item
-                android:id="@+id/sort_name_desc"
-                android:title="Song Name Desc"
-                />
-            <item
-                android:id="@+id/sort_artist"
-                android:title="Artist Name"
-                />
-            <item
-                android:id="@+id/sort_artist_desc"
-                android:title="Artist Name Desc"
-                />
-        </menu>
-    </item>
     <item
         android:id="@+id/action_settings"
         android:orderInCategory="100"

@@ -17,12 +17,17 @@
     import android.net.Uri;
     import android.os.AsyncTask;
     import android.os.Build;
+    import android.os.RemoteException;
     import android.preference.PreferenceManager;
     import android.provider.MediaStore;
     import android.support.design.widget.AppBarLayout;
     import android.support.design.widget.CollapsingToolbarLayout;
     import android.support.design.widget.FloatingActionButton;
     import android.support.v4.content.ContextCompat;
+    import android.support.v4.media.MediaMetadataCompat;
+    import android.support.v4.media.session.MediaControllerCompat;
+    import android.support.v4.media.session.MediaSessionCompat;
+    import android.support.v4.media.session.PlaybackStateCompat;
     import android.support.v7.app.AppCompatActivity;
     import android.os.Bundle;
     import android.support.v7.graphics.Palette;
@@ -31,16 +36,22 @@
     import android.support.v7.widget.Toolbar;
     import android.transition.Transition;
     import android.transition.TransitionInflater;
+    import android.util.DisplayMetrics;
     import android.util.Log;
     import android.view.MenuItem;
     import android.view.View;
     import android.view.ViewAnimationUtils;
     import android.view.ViewGroup;
     import android.widget.FrameLayout;
+    import android.widget.ImageButton;
     import android.widget.ImageView;
+    import android.widget.LinearLayout;
     import android.widget.RelativeLayout;
+    import android.widget.SeekBar;
     import android.widget.TextView;
 
+    import com.sothree.slidinguppanel.SlidingUpPanelLayout;
+    import com.squareup.picasso.Picasso;
     import com.transitionseverywhere.Crossfade;
     import com.transitionseverywhere.Fade;
     import com.transitionseverywhere.Recolor;
@@ -52,7 +63,8 @@
 
     import xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScroller;
 
-public class open_playlist extends AppCompatActivity implements recycler_adapter.playlist_data,View.OnClickListener{
+public class open_playlist extends AppCompatActivity implements recycler_adapter.playlist_data,View.OnClickListener,
+        SeekBar.OnSeekBarChangeListener,SlidingUpPanelLayout.PanelSlideListener{
 
     RecyclerView rec_view;
     RecyclerView.LayoutManager mlayoutmanager;
@@ -72,7 +84,7 @@ public class open_playlist extends AppCompatActivity implements recycler_adapter
     String title="";
     ImageView image,over_image,image1,image2,image3,image4;
     TextView over_title,over_artist,numberofsongs;
-    String playall="false";
+    Boolean playall=false;
     AppBarLayout appBarLayout;
     CollapsingToolbarLayout collapsingToolbarLayout;
     Bitmap bitmap;
@@ -80,9 +92,33 @@ public class open_playlist extends AppCompatActivity implements recycler_adapter
     ArrayList<String> albumartlist;
     FrameLayout framelayout;
     boolean isplaylist=false;
-        boolean hassavedlist=false;
-        View image_foreground_colour;
-        VerticalRecyclerViewFastScroller fastScroller;
+    boolean hassavedlist=false;
+    View image_foreground_colour;
+    VerticalRecyclerViewFastScroller fastScroller;
+    boolean previousplayingstate=false;
+    int current_image_no=1;
+
+
+    //slidinglayout
+    Toolbar card;
+    LinearLayout slidercontrolcolour;
+    String path;
+    boolean canrun=true;
+    SlidingUpPanelLayout slider;
+    ImageButton previous,next,play_pause,repeat,shuffle;
+    TextView current,total,songname,artistname;
+    SeekBar seekBar;
+    String Current_time;
+    ImageButton button;
+    ImageView imageslide,imagebar;
+    updateseekbar1 seekbarasync;
+    songs current_song;
+    Long setmax=0L;
+    public boolean isrepeat,isshuffle;
+    boolean isplaying=false;
+    MediaControllerCompat controllerCompat;
+    PlaybackStateCompat currentPlaybackstate ;
+    MediaMetadataCompat currentmetadata ;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -144,7 +180,7 @@ public class open_playlist extends AppCompatActivity implements recycler_adapter
             }else if(method.equals("album")) {
                 album_art=getIntent().getStringExtra("album_art");
                 title=getIntent().getStringExtra("album_name");
-                playall=getIntent().getStringExtra("album_playall");
+                playall=getIntent().getBooleanExtra("album_playall",false);
                 album_id=getIntent().getLongExtra("album_id",0);
                 current_id=album_id;
                 inback.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,0);
@@ -196,33 +232,79 @@ public class open_playlist extends AppCompatActivity implements recycler_adapter
         handle_enter_transition();
         addListener_to_appbar();
 
+        //set height of appbarlayout=width
+        DisplayMetrics displaymetrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(displaymetrics);
+        int width = displaymetrics.widthPixels;
+        int height = displaymetrics.heightPixels;
+        ViewGroup.LayoutParams params = appBarLayout.getLayoutParams();
+        Log.i("hgt",String.valueOf(width));
+        int ans=Math.min((3*height)/4,width);
+        params.height = ans;
+        appBarLayout.setLayoutParams(params);
+
+        //slider
+        set_card_visibility();
+        card.setContentInsetsAbsolute(0, 0);
+        connectControllerToSession(con.getMediaSessionToken());
+
     }
     public void inititalise(){
-            setContentView(R.layout.activity_open_playlist);
+        setContentView(R.layout.activity_open_playlist);
 
-            rec_view=(RecyclerView)findViewById(R.id.rec_view2);
-            mlayoutmanager=new LinearLayoutManager(this);
+        rec_view=(RecyclerView)findViewById(R.id.rec_view2);
+        mlayoutmanager=new LinearLayoutManager(this);
 
-            toolbar=(Toolbar)findViewById(R.id.MyToolbar);
-            collapsingToolbarLayout=(CollapsingToolbarLayout)findViewById(R.id.collapse_toolbar);
-            image=(ImageView)findViewById(R.id.album_image);
-            image1=(ImageView)findViewById(R.id.album_image1);
-            image2=(ImageView)findViewById(R.id.album_image2);
-            image3=(ImageView)findViewById(R.id.album_image3);
-            image4=(ImageView)findViewById(R.id.album_image4);
-            desc_toolbar=(Toolbar)findViewById(R.id.desc_bar);
-            over_image=(ImageView)findViewById(R.id.over_image);
-            over_title=(TextView)findViewById(R.id.overtitle);
-            over_artist=(TextView)findViewById(R.id.over_artist);
-            numberofsongs=(TextView)findViewById(R.id.numberofsongs);
-            fab1=(FloatingActionButton)findViewById(R.id.fab1);
-            image_foreground_colour=findViewById(R.id.image_foreground_colour);
-            setSupportActionBar(toolbar);
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        toolbar=(Toolbar)findViewById(R.id.MyToolbar);
+        collapsingToolbarLayout=(CollapsingToolbarLayout)findViewById(R.id.collapse_toolbar);
+        appBarLayout=(AppBarLayout)findViewById(R.id.MyAppbar);
+        image=(ImageView)findViewById(R.id.album_image);
+        image1=(ImageView)findViewById(R.id.album_image1);
+        image2=(ImageView)findViewById(R.id.album_image2);
+        image3=(ImageView)findViewById(R.id.album_image3);
+        image4=(ImageView)findViewById(R.id.album_image4);
+        desc_toolbar=(Toolbar)findViewById(R.id.desc_bar);
+        over_image=(ImageView)findViewById(R.id.over_image);
+        over_title=(TextView)findViewById(R.id.overtitle);
+        over_artist=(TextView)findViewById(R.id.over_artist);
+        numberofsongs=(TextView)findViewById(R.id.numberofsongs);
+        fab1=(FloatingActionButton)findViewById(R.id.fab1);
+        image_foreground_colour=findViewById(R.id.image_foreground_colour);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
-            resolver = getContentResolver();
+        //slider
+        card = (Toolbar) findViewById(R.id.controller_bar);
+        slidercontrolcolour=(LinearLayout) findViewById(R.id.grad_bottom_slide);
+        songname = (TextView) findViewById(R.id.bar_name);
+        artistname = (TextView) findViewById(R.id.bar_artist);
+        button = (ImageButton) findViewById(R.id.bar_button);
+        imagebar = (ImageView) findViewById(R.id.bar_image);
+        slider=(SlidingUpPanelLayout)findViewById(R.id.sliding_layout);
+        previous=(ImageButton)findViewById(R.id.previous);
+        next=(ImageButton)findViewById(R.id.next);
+        play_pause=(ImageButton)findViewById(R.id.play_pause);
+        repeat=(ImageButton)findViewById(R.id.repeat);
+        shuffle=(ImageButton)findViewById(R.id.shuffle);
+        current=(TextView) findViewById(R.id.current_time);
+        total=(TextView) findViewById(R.id.total_time);
+        seekBar=(SeekBar)findViewById(R.id.seekbar);
+        imageslide=(ImageView)findViewById(R.id.player_image);
 
-        }
+        play_pause.setOnClickListener(this);
+        previous.setOnClickListener(this);
+        next.setOnClickListener(this);
+        repeat.setOnClickListener(this);
+        shuffle.setOnClickListener(this);
+        seekBar.setOnSeekBarChangeListener(this);
+        imageslide.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        card.setOnClickListener(this);
+        button.setOnClickListener(this);
+        slider.addPanelSlideListener(this);
+
+        resolver = getContentResolver();
+
+    }
 
     public void handle_enter_transition(){
 
@@ -356,52 +438,59 @@ public class open_playlist extends AppCompatActivity implements recycler_adapter
         }
         // for getting colors from bitmap  using pallete lbrary
         if(bitmap!=null) {
-
-            Palette.from(bitmap).generate(new Palette.PaletteAsyncListener() {
-                public void onGenerated(Palette palette) {
-                    // access palette colors here
-                    swatch = palette.getDarkMutedSwatch();
-                    swatchaccent = palette.getVibrantSwatch();
-
-                    //Log.i("lkll"," swatch values are "+String.valueOf(vibrant)+"\n"+String.valueOf(c)+"\n"+String.valueOf(d)+"\n"+
-                    //String.valueOf(f)+"\n"+String.valueOf(a)+"\n"+String.valueOf(b));
-                    if (swatch == null) {
-                        swatch = palette.getMutedSwatch();
-                    }
-                    try {
-                        Log.i("lkll", "pop3");
-                        framelayout.setBackgroundColor(con.getPrimaryLight());
-
-                        //toolbar.setBackgroundColor(swatch.getRgb());
-                        //TransitionManager.beginDelayedTransition(desc_toolbar,new Recolor());
-                        try {
-                            desc_toolbar.setBackgroundColor(swatch.getRgb());
-                            collapsingToolbarLayout.setContentScrimColor(swatch.getRgb());
-                            fab1.setBackgroundTintList(ColorStateList.valueOf(swatchaccent.getRgb()));
-                        }catch (Exception e){
-                            desc_toolbar.setBackgroundColor(con.getPrimary());
-                            collapsingToolbarLayout.setContentScrimColor(con.getPrimary());
-                            fab1.setBackgroundTintList(ColorStateList.valueOf(con.getAccent()));
-                        }
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                            //to darken the status ba colour
-                            float[] hsv = new float[3];
-                            int color = swatch.getRgb();
-                            Color.colorToHSV(color, hsv);
-                            hsv[2] *= 0.6f; // value component
-                            color = Color.HSVToColor(hsv);
-                            getWindow().setStatusBarColor(color);
-                            Log.i("lkll", "pop3");
-                        }
-
-                    } catch (Exception e) {
-                        Log.i("lkll", String.valueOf(e.toString()));
-                    }
-                }
-            });
+            setPalettecolour(bitmap);
         }
     }
 
+    public void setPalettecolour(Bitmap bitmap){
+        Palette.from(bitmap).generate(new Palette.PaletteAsyncListener() {
+            public void onGenerated(Palette palette) {
+                // access palette colors here
+                swatch = palette.getDarkMutedSwatch();
+                swatchaccent = palette.getVibrantSwatch();
+
+                //Log.i("lkll"," swatch values are "+String.valueOf(vibrant)+"\n"+String.valueOf(c)+"\n"+String.valueOf(d)+"\n"+
+                //String.valueOf(f)+"\n"+String.valueOf(a)+"\n"+String.valueOf(b));
+                if (swatch == null) {
+                    swatch = palette.getMutedSwatch();
+                }
+                try {
+                    Log.i("lkll", "pop3");
+                    framelayout.setBackgroundColor(con.getPrimaryLight());
+
+                    //toolbar.setBackgroundColor(swatch.getRgb());
+                    //TransitionManager.beginDelayedTransition(desc_toolbar,new Recolor());
+                    try {
+                        desc_toolbar.setBackgroundColor(swatch.getRgb());
+                        collapsingToolbarLayout.setContentScrimColor(swatch.getRgb());
+                        fab1.setBackgroundTintList(ColorStateList.valueOf(swatchaccent.getRgb()));
+                    }catch (Exception e){
+
+                        desc_toolbar.setBackgroundColor(con.getPrimary());
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                            getWindow().setStatusBarColor(con.getPrimaryDark());
+                        }
+                        collapsingToolbarLayout.setContentScrimColor(con.getPrimary());
+                        fab1.setBackgroundTintList(ColorStateList.valueOf(con.getAccent()));
+                    }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        //to darken the status ba colour
+                        float[] hsv = new float[3];
+                        int color = swatch.getRgb();
+                        Color.colorToHSV(color, hsv);
+                        hsv[2] *= 0.6f; // value component
+                        color = Color.HSVToColor(hsv);
+                        getWindow().setStatusBarColor(color);
+                        Log.i("lkll", "pop3");
+                    }
+
+                } catch (Exception e) {
+                    Log.i("lkll", String.valueOf(e.toString()));
+                }
+            }
+        });
+
+    }
     public void refreshNoOfSongs() {
         if (bitmap != null) {
             String string = list.size() + " songs";
@@ -418,7 +507,8 @@ public class open_playlist extends AppCompatActivity implements recycler_adapter
     String[] projection = {
             MediaStore.Audio.Media.TITLE,
             MediaStore.Audio.Media.ARTIST,
-            MediaStore.Audio.Media._ID
+            MediaStore.Audio.Media._ID,
+            MediaStore.Audio.Media.DATA
     };
     final String sortOrder = MediaStore.Audio.Media.TITLE ;
 
@@ -430,13 +520,11 @@ public class open_playlist extends AppCompatActivity implements recycler_adapter
             Log.i(tag1,"nnnnnnnnnnn cursor!=null");
             while (cursor.moveToNext()) {
                 Log.i(tag1,"move to next");
-               String name=cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.TITLE));
-                //song.setDuration(cursor.getLong(4));
+                String name=cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.TITLE));
                 String artist=cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST));
-                //String path=cursor.getString(2);
-                //song.setAlbumId(cursor.getLong(6));
                 long id=cursor.getLong(cursor.getColumnIndex(MediaStore.Audio.Media._ID));
-                songs song =new songs(id,name,artist,"",album_id);
+                String thisdata=cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA));
+                songs song =new songs(id,name,artist,"",album_id,thisdata);
                 list.add(song);Log.i(tag1,"song added");
                 Log.i(tag1,name+" "+artist);
             }
@@ -450,6 +538,12 @@ public class open_playlist extends AppCompatActivity implements recycler_adapter
             try{cursor.close();}catch (Exception e){e.printStackTrace();}
         }
     }
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                refreshNoOfSongs();
+            }
+        });
     Log.i(tag1,"list: "+list.size());
     new doasync().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,2);
 
@@ -474,8 +568,8 @@ public class open_playlist extends AppCompatActivity implements recycler_adapter
                 MediaStore.Audio.Playlists.Members.ARTIST,
                 MediaStore.Audio.Playlists.Members.TITLE,
                 MediaStore.Audio.Playlists.Members._ID,
-                MediaStore.Audio.Playlists.Members.ALBUM_ID
-
+                MediaStore.Audio.Playlists.Members.ALBUM_ID,
+                MediaStore.Audio.Playlists.Members.DATA,
 
         };
         Cursor tracks = resolver.query(uri,projection, null, null, null);Log.i(tag,"--");
@@ -487,11 +581,10 @@ public class open_playlist extends AppCompatActivity implements recycler_adapter
                     Long id=Long.parseLong(tracks.getString(tracks.getColumnIndex(MediaStore.Audio.Playlists.Members.AUDIO_ID)));
                     String artist=tracks.getString(tracks.getColumnIndex(MediaStore.Audio.Playlists.Members.ARTIST));
                     Long albumid=tracks.getLong(tracks.getColumnIndex(MediaStore.Audio.Media.ALBUM_ID));
+                    String thisdata=tracks.getString(tracks.getColumnIndex(MediaStore.Audio.Playlists.Members.DATA));
 
-                    song =new songs(id,name,artist,"",albumid);
-                    Log.i(tag,"--");
+                    song =new songs(id,name,artist,"",albumid,thisdata);
                     list.add(song);
-
                 }
                 try{Log.i(tag,"try");tracks.close();}catch (Exception e){e.printStackTrace();}
             }
@@ -528,10 +621,12 @@ public class open_playlist extends AppCompatActivity implements recycler_adapter
         String path=null;
 
         for(int i=0;i<list.size();i++){
-
+            final int ss=i;
             current=list.get(i);
             try {
-                cursor = resolver.query(MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI, projection, "_ID=" + current.getAlbum_id(),
+                //cursor = resolver.query(MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI, projection, "_ID=" + current.getAlbum_id(),
+                  //      null, null);
+                cursor = resolver.query(MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI, projection, _id +"=" + current.getAlbum_id(),
                         null, null);
 
                 if (cursor != null) {
@@ -552,6 +647,14 @@ public class open_playlist extends AppCompatActivity implements recycler_adapter
                               first=false;
                            }
                            albumartlist.add(path);
+                           //-----
+                           current.setImagepath(path);
+                           runOnUiThread(new Runnable() {
+                               @Override
+                               public void run() {
+                                   adapter.notifyItemChanged(ss);
+                               }
+                           });
                            //return;
                        }
                     }
@@ -560,42 +663,58 @@ public class open_playlist extends AppCompatActivity implements recycler_adapter
             }catch (Exception e){Log.i("aaaa","fffff");}
 
         }
+        if(method.equals("album") && playall){
+            play_all_songs();
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    refreshfab();
+                }
+            });
+
+        }
         Log.i("lkll","setalbumart end");
 
     }
 
+    public void setnewMainImage(){
+        String path=albumartlist.get(getnextImageNo());
+        current_image_no++;
+        Bitmap bmp = BitmapFactory.decodeFile(path);
+        if(bmp!=null){
+            over_image.setImageBitmap(bmp);
+            setPalettecolour(bmp);
+        }
+    }
     @Override
     public void onBackPressed() {
 
-    fab1.animate().scaleX(0f).scaleY(0f).setDuration(50).withEndAction(new Runnable() {
-        @Override
-        public void run() {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                //getWindow().setExitTransition(null);
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    supportFinishAfterTransition();
+        if(slider.getPanelState()== SlidingUpPanelLayout.PanelState.EXPANDED){
+            slider.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
+        }else {
+            fab1.animate().scaleX(0f).scaleY(0f).setDuration(50).withEndAction(new Runnable() {
+                @Override
+                public void run() {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        //getWindow().setExitTransition(null);
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                            supportFinishAfterTransition();
 
-                }else{
-                    finish();
-                    open_playlist.super.onBackPressed();
+                        }else{
+                            finish();
+                            open_playlist.super.onBackPressed();
+                        }
+
+                        //finish();
+                    }
+
                 }
-
-                //finish();
-            }
+            });
 
         }
-    });
 
     }
 
-    @Override
-    protected void onPause() {
-    if(isplaylist) {
-        overridePendingTransition(R.anim.slide_in_fromleft, R.anim.slide_out_toright);
-    }
-    canrun=false;
-    super.onPause();
-    }
 
     @Override
     protected void onStop() {
@@ -629,24 +748,26 @@ public class open_playlist extends AppCompatActivity implements recycler_adapter
 
     public void refreshfab() {
     if(current_id.equals(con.open_playlist_id)&&con.isPlaying()){
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && !previousplayingstate) {
             fab1.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.avd_play_to_pause_white));
+            Drawable drawable = fab1.getDrawable();
+            ((Animatable)drawable).start();
         }else{
             fab1.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.pause_white));
         }
-
+        previousplayingstate=true;
 
     }else{
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && previousplayingstate) {
             fab1.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.avd_pause_to_play_white));
+            Drawable drawable = fab1.getDrawable();
+            ((Animatable)drawable).start();
         }else{
             fab1.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.play_white));
-        }        }
-    Drawable drawable = fab1.getDrawable();
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-        ((Animatable)drawable).start();
-    }
+        }
+        previousplayingstate=false;
 
+    }
     }
 
     @Override
@@ -661,44 +782,187 @@ public class open_playlist extends AppCompatActivity implements recycler_adapter
     }
     @Override
     public void onClick(View v) {
-    if(v.getId()==R.id.fab1){
-        //TransitionManager.beginDelayedTransition(fab1);
+        int id = v.getId();
+        switch (id) {
+            case R.id.fab1: {
 
+                //TransitionManager.beginDelayedTransition(fab1);
+                if (current_id.equals(con.open_playlist_id) && con.isPlaying()) {
+                    //pause the button
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        fab1.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.avd_pause_to_play_white));
+                    } else {
+                        fab1.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.play_white));
+                    }
+                    previousplayingstate = false;
+                    con.pause();
+                } else if (current_id.equals(con.open_playlist_id) && !con.isPlaying()) {
+                    //pause the button
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        fab1.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.avd_play_to_pause_white));
+                    } else {
+                        fab1.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.pause_white));
+                    }
+                    previousplayingstate = true;
+                    con.resume();
+                } else {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        fab1.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.avd_play_to_pause_white));
+                    } else {
+                        fab1.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.pause_white));
+                    }
 
-        if(current_id.equals(con.open_playlist_id) && con.isPlaying()){
-            //pause the button
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                fab1.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.avd_pause_to_play_white));
-            }else{
-                fab1.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.play_white));
+                    //play all songs
+                    play_all_songs();
+                }
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    Drawable drawable = fab1.getDrawable();
+                    ((Animatable) drawable).start();
+                }
+
             }
-            con.pause();
-        }else if(current_id.equals(con.open_playlist_id) && !con.isPlaying()){
-            //pause the button
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                fab1.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.avd_play_to_pause_white));
-            }else{
-                fab1.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.pause_white));
-            }
-            con.resume();
-        }else{
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                fab1.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.avd_play_to_pause_white));
-            }else{
-                fab1.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.pause_white));
+            case R.id.controller_bar: {
+
+                //Intent intent = new Intent(this, playerr.class);
+                //startActivity(intent);
+                if(slider.getPanelState()== SlidingUpPanelLayout.PanelState.COLLAPSED){
+                    slider.setPanelState(SlidingUpPanelLayout.PanelState.EXPANDED);
+                }
+                return;
             }
 
-            //play all songs
-            play_all_songs();
+            case R.id.bar_button: {
+                if(slider.getPanelState()== SlidingUpPanelLayout.PanelState.EXPANDED){
+
+                    return;
+                }
+                currentPlaybackstate=controllerCompat.getPlaybackState();
+                if(currentPlaybackstate!=null) {
+                    Log.i("mjkl", "current playback state is not null bar_button click");
+
+                    MediaControllerCompat.TransportControls controls = controllerCompat.getTransportControls();
+                    switch (currentPlaybackstate.getState()) {
+                        case PlaybackStateCompat.STATE_PLAYING: {
+                            Log.i("mjkl", "state playing state to pause");
+                            controls.pause();
+                            break;
+                        }
+                        case PlaybackStateCompat.STATE_PAUSED: {
+                            Log.i("mjkl", "paused state to play");
+                            controls.play();
+                            break;
+                        }
+                        default: {
+                            controls.play();
+                            Log.i("mjkl", "unhandled state " + currentPlaybackstate.getState());
+                        }
+                    }
+                }else{
+                    Log.i("mjkl", "current playback state is null bar_button click");
+                    con.playsong(0);
+                }
+                return;
+            }
+
+            case R.id.play_pause :{
+                Log.i("mmmm","playpause");
+                // Log.i("mmmm",String.valueOf(con.getCurrentPosition())+"---"+String.valueOf(con.getlist().size()));
+                currentPlaybackstate=controllerCompat.getPlaybackState();
+                if(currentPlaybackstate!=null) {
+                    Log.i("mjkl", "current playback state is not null play_pause click");
+
+                    MediaControllerCompat.TransportControls controls = controllerCompat.getTransportControls();
+                    switch (currentPlaybackstate.getState()) {
+                        case PlaybackStateCompat.STATE_PLAYING: {
+                            Log.i("mjkl", "state playing state to pause");
+                            controls.pause();
+                            break;
+                        }
+                        case PlaybackStateCompat.STATE_PAUSED: {
+                            Log.i("mjkl", "paused state to play");
+                            controls.play();
+                            break;
+                        }
+                        default:
+                            Log.i("mjkl", "unhandled state " + currentPlaybackstate.getState());
+
+                    }
+                }else{
+                    Log.i("mjkl", "current playback state is null play_pause click");
+
+                    con.playsong(0);
+                }
+
+                return;
+            }
+            case R.id.previous :{
+                previous.animate().scaleX(1.25f).scaleY(1.25f).setDuration(0).withEndAction(new Runnable() {
+                    @Override
+                    public void run() {
+                        previous.animate().scaleX(1).scaleY(1).setDuration(300).start();
+                    }
+                });
+
+                Log.i("lllll","previous");
+                seekBar.setProgress(0);
+                con.playprev();
+                //refreshview();
+                seekBar.setProgress(0);
+
+                return;
+            }
+            case R.id.next :{
+                Log.i("mmmm","next---------------");
+                next.animate().scaleX(1.25f).scaleY(1.25f).setDuration(0).withEndAction(new Runnable() {
+                    @Override
+                    public void run() {
+                        next.animate().scaleX(1).scaleY(1).setDuration(300).start();
+                    }
+                });
+
+                Log.i("lllll","next");
+                seekBar.setProgress(0);
+                con.playnext();
+                //refreshview();
+                seekBar.setProgress(0);
+                return;
+            }
+            case R.id.repeat:{
+
+                Log.i("mmmm","repeat");
+
+                Log.i("mmmm","repeat: getDuration "+String.valueOf(con.getDuration()/1000L));
+                if(isrepeat){
+                    isrepeat=false;
+                    con.setRepeat(false);
+                    setrepeatbutton(true);
+                }else{
+                    isrepeat=true;
+                    con.setRepeat(true);
+                    setrepeatbutton(true);
+                }
+                return;
+            }
+            case R.id.shuffle :{
+                Log.i("llll","shuffle");
+                if(isshuffle){
+                    isshuffle=false;
+                    con.setShuffle(false);
+                    setshufflebutton(true);
+                }else{
+                    isshuffle=true;
+                    con.setShuffle(true);
+                    setshufflebutton(true);
+                }
+                return;
+            }
+            default: return;
+
         }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            Drawable drawable = fab1.getDrawable();
-            ((Animatable)drawable).start();
-        }
-
     }
-    }
+
+
     public class doasync extends AsyncTask<Integer,Void,Void>{
     int i;
     @Override
@@ -733,8 +997,6 @@ public class open_playlist extends AppCompatActivity implements recycler_adapter
         make_multiple_images();
     }
     }
-    int current_image_no=1;
-    boolean canrun=true;
 
     public void make_multiple_images(){
 
@@ -800,6 +1062,10 @@ public class open_playlist extends AppCompatActivity implements recycler_adapter
             current_image_no++;
             break;
         }
+        case 5:{
+            setnewMainImage();
+            break;
+        }
 
     }
 
@@ -849,9 +1115,9 @@ public class open_playlist extends AppCompatActivity implements recycler_adapter
     @Override
     protected void onProgressUpdate(Void... values) {
         super.onProgressUpdate(values);
-        int t=rand.nextInt(4);
+        int t=rand.nextInt(5);
         while(t==i){
-            t=rand.nextInt(4);
+            t=rand.nextInt(5);
         }
         i=t;
         changeImages(i+1);
@@ -862,8 +1128,49 @@ public class open_playlist extends AppCompatActivity implements recycler_adapter
     @Override
     protected void onResume() {
         Log.i("activitystate","onresume");
-    super.onResume();
-    refreshfab();
+        super.onResume();
+        refreshfab();
+
+        setrepeatbutton(false);
+        setshufflebutton(false);
+        controllerCompat.registerCallback(callback);
+        currentPlaybackstate=controllerCompat.getPlaybackState();
+        currentmetadata=controllerCompat.getMetadata();
+        set_card_visibility();
+
+        try {
+            if (con.isPlaying()) {
+                setcard(true, con.getsong());
+            } else {
+                songs song = con.getsong();
+                if (song != null) {
+                    setcard(false, song);
+                } else {
+                    setcard(false, null);
+                }
+            }
+        } catch (Exception e) {}
+
+        seekbarasync =new updateseekbar1();
+        seekbarasync.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        isplaying=con.isPlaying();
+        refreshview();
+        seticon(false);
+
+    }
+    @Override
+    protected void onPause() {
+        if(isplaylist) {
+            overridePendingTransition(R.anim.slide_in_fromleft, R.anim.slide_out_toright);
+        }
+        canrun=false;
+        super.onPause();
+
+        seekbarasync.cancel(true);
+        seekbarasync.canrun=false;
+        controllerCompat.unregisterCallback(callback);
+
+
     }
 
     @Override
@@ -897,6 +1204,398 @@ public class open_playlist extends AppCompatActivity implements recycler_adapter
             Log.i("activitystate","onrestoreinstance");
             super.onRestoreInstanceState(savedInstanceState);
         }
+
+
+
+
+
+
+    // slider functions
+    private MediaControllerCompat.Callback callback=new MediaControllerCompat.Callback() {
+        @Override
+        public void onPlaybackStateChanged(PlaybackStateCompat state) {
+            Log.i("mjkl","playbackstate change callback");
+            super.onPlaybackStateChanged(state);
+            currentPlaybackstate=state;
+            setstate(state);
+        }
+
+        @Override
+        public void onMetadataChanged(MediaMetadataCompat metadata) {
+            Log.i("mjkl","metadata change callback");
+            super.onMetadataChanged(metadata);
+            currentmetadata=metadata;
+            setmetadata(metadata);
+        }
+    };
+
+    private void connectControllerToSession(MediaSessionCompat.Token token) {
+        try {
+            controllerCompat=new MediaControllerCompat(this,token);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+        PlaybackStateCompat stateCompat=controllerCompat.getPlaybackState();
+        MediaMetadataCompat metadataCompat=controllerCompat.getMetadata();
+        currentPlaybackstate=stateCompat;
+        currentmetadata=metadataCompat;
+        setstate(stateCompat);
+        setmetadata(metadataCompat);
+    }
+
+    public void seticon(boolean a){
+        Log.i("seticon","start---");
+
+        isplaying=con.isPlaying();
+        if(isplaying){
+            Log.i("seticon","isplaying");
+            //play_pause.setImageResource(R.drawable.pause_white);
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && a && slider.getPanelState()== SlidingUpPanelLayout.PanelState.EXPANDED) {
+                play_pause.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.avd_play_to_pause_white));
+                Drawable drawable = play_pause.getDrawable();
+                ((Animatable) drawable).start();
+            }else{
+                play_pause.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.pause_white));
+            }
+
+        }else{
+            Log.i("seticon","!isplaying");
+
+            //play_pause.setImageResource(R.drawable.play_white);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && a &&  slider.getPanelState()== SlidingUpPanelLayout.PanelState.EXPANDED) {
+                play_pause.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.avd_pause_to_play_white));
+                Drawable drawable = play_pause.getDrawable();
+                ((Animatable) drawable).start();
+            }else{
+                play_pause.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.play_white));
+            }
+        }
+        setbutton(a);
+        Log.i("seticon","seticon end---");
+
+    }
+    public void setbutton(boolean a) {
+        Log.i("seticon","setbutto start---");
+
+        isplaying=con.isPlaying();
+        if (isplaying) {
+            Log.i("seticon","isplaying button");
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && a &&  slider.getPanelState()== SlidingUpPanelLayout.PanelState.COLLAPSED) {
+                button.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.avd_play_to_pause));
+                Drawable drawable = button.getDrawable();
+                ((Animatable) drawable).start();
+            }else{
+                button.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.pause));
+            }
+        } else {
+            Log.i("seticon","!isplaying button");
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && a &&  slider.getPanelState()== SlidingUpPanelLayout.PanelState.COLLAPSED) {
+                button.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.avd_pause_to_play));
+                Drawable drawable = button.getDrawable();
+                ((Animatable) drawable).start();
+            }else{
+                button.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.play));
+            }
+        }
+        Log.i("seticon","setbuttn end---");
+
+    }
+    public void setrepeatbutton(boolean animation){
+        isrepeat=con.isRepeat();
+        if(isrepeat){
+            repeat.setImageResource(R.drawable.repeat_selected);
+        }else      repeat.setImageResource(R.drawable.repeat);
+
+        if(animation) {
+            repeat.animate().scaleX(1.25f).scaleY(1.25f).setDuration(0).withEndAction(new Runnable() {
+                @Override
+                public void run() {
+                    repeat.animate().scaleX(1).scaleY(1).setDuration(300).start();
+                }
+            });
+        }
+    }
+    public void setshufflebutton(boolean animation){
+        isshuffle=con.isShuffle();
+        if(isshuffle){
+            shuffle.setImageResource(R.drawable.shuffle_selected);
+        }else      shuffle.setImageResource(R.drawable.shuffle);
+
+        if(animation) {
+            shuffle.animate().scaleX(1.25f).scaleY(1.25f).setDuration(0).withEndAction(new Runnable() {
+                @Override
+                public void run() {
+                    shuffle.animate().scaleX(1).scaleY(1).setDuration(300).start();
+                }
+            });
+        }
+    }
+    public void refreshPanel(){
+
+        Log.i("lllll","refresh");
+        current_song=con.getsong();
+        setdata();
+        if(current_song!=null) {
+            setcard(con.isPlaying(), con.getsong());
+        }
+    }
+    public void setdata(){
+        try {
+            Log.i("mjkl","setdata");
+
+            isplaying=con.isPlaying();
+            Long timemilli=con.getDuration();
+            Long timemillicurrent=con.getcurrentplaybacktime();
+            int timesec=Integer.parseInt(String.valueOf(timemilli/1000L));
+            int timecurrentsec=Integer.parseInt(String.valueOf(timemillicurrent/1000L));
+            Log.i("kkkk","total time of current song is :"+timesec/60+":"+timesec%60);
+            total.setText(gettime(timesec));
+            Current_time=gettime(Integer.parseInt(String.valueOf(con.getcurrentplaybacktime()/1000L)));
+
+            current.setText(Current_time);
+            Log.i("lllll","setdata");
+            bitmap= BitmapFactory.decodeFile(current_song.getImagepath());
+
+            if(bitmap!=null){
+
+                //image.setImageBitmap(bitmap);
+                Picasso.with(this)
+                        .load(Uri.parse("file://"+current_song.getImagepath()))
+                        .error(R.drawable.guitar)
+                        .into(imagebar);
+                slidercontrolcolour.setVisibility(View.VISIBLE);
+                slidercontrolcolour.setBackground(ContextCompat.getDrawable(this,R.drawable.grad));
+            }
+            else {
+                slidercontrolcolour.setVisibility(View.VISIBLE);
+
+                //image.setImageResource(R.drawable.mp3full);
+                Picasso.with(this)
+                        .load(R.drawable.guitar)
+                        .error(R.drawable.mp3full)
+                        .into(imagebar);
+            }
+            Log.i("mmmm","setdata: getDuration setmax"+(String.valueOf(Integer.parseInt(String.valueOf(timemilli/1000L)))));
+            setmax=timemilli;
+            seekBar.setMax(timesec);
+            seekBar.setProgress(timecurrentsec);
+            //seekBar.setMax(con.getDuration());
+            Log.i("lllll","----"+String.valueOf(timemilli));
+            seticon(false);
+
+        }catch (Exception e){e.printStackTrace();
+            Log.i("mjkl","exception---");
+        }
+    }
+    public String gettime(int secs){
+        int min=secs/60;
+        int sec=secs%60;
+        String time;
+        if(sec<10){
+            time=String.valueOf(min)+":0"+String.valueOf(sec);
+
+        }else{
+            time=String.valueOf(min)+":"+String.valueOf(sec);
+
+        }
+        return time;
+
+    }
+    public void setcard(boolean a, songs song) {
+        seticon(false);
+        path = song.getImagepath();
+        if (song != null) {
+            Log.i("klkl", "song!=null..setting card");
+            try {
+                String name = song.getName();
+                String artist = song.getArtist();
+                songname.setText(name);
+                artistname.setText(artist);
+                Bitmap bitmap = BitmapFactory.decodeFile(song.getImagepath());
+                if (bitmap != null) {
+                    //image.setImageBitmap(bitmap);
+                    //imageslide.setImageBitmap(bitmap);
+                    Picasso.with(this)
+                            .load(Uri.parse("file://"+song.getImagepath()))
+                            .error(R.drawable.mp3full)
+                            .into(imagebar);
+                    Picasso.with(this)
+                            .load(Uri.parse("file://"+song.getImagepath()))
+                            .error(R.drawable.mp3full)
+                            .into(imageslide);
+                } else {
+                    //image.setImageResource(R.drawable.mp3full);
+                    //imageslide.setImageResource(R.drawable.mp3full);
+                    Picasso.with(this)
+                            .load(R.drawable.guitar)
+                            .error(R.drawable.mp3full)
+                            .into(imagebar);
+                    Picasso.with(this)
+                            .load(R.drawable.guitar)
+                            .error(R.drawable.mp3full)
+                            .into(imageslide);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            imagebar.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            imageslide.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        }
+    }
+    public void set_card_visibility(){
+        Log.i("klkl", String.valueOf(con.isnull()) +"  "+String.valueOf(con.isPlaying()));
+
+        if (!con.isnull() && con.getsong()!=null){
+            int ii=this.getResources().getInteger(R.integer.panelheight);
+            slider.setPanelHeight(ii);
+            slider.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
+        }else{
+            slider.setPanelState(SlidingUpPanelLayout.PanelState.HIDDEN);
+        }
+
+    }
+
+    @Override
+    public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+        Log.i("lllll","progress changed :");
+        // Log.i("kkkk","on progress changed:"+String.valueOf(progress)+" -- "+!con.isnull() +fromUser);
+        Log.i("mmmm","onprogresschamged -"+String.valueOf(progress));
+
+        if(!con.isnull() && fromUser){
+            // con.seekTo(progress);
+            Log.i("kkkk","on progress changed:"+String.valueOf(progress));
+            con.seekTo(Long.parseLong(String.valueOf(progress*1000)));
+        }
+    }
+
+    @Override
+    public void onStartTrackingTouch(SeekBar seekBar) {
+
+    }
+
+    @Override
+    public void onStopTrackingTouch(SeekBar seekBar) {
+
+    }
+
+    @Override
+    public void onPanelSlide(View panel, float slideOffset) {
+
+    }
+
+    @Override
+    public void onPanelStateChanged(View panel, SlidingUpPanelLayout.PanelState previousState, SlidingUpPanelLayout.PanelState newState) {
+        if(newState.equals(SlidingUpPanelLayout.PanelState.EXPANDED)){
+
+            button.setVisibility(View.INVISIBLE);
+           /* button.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.queue));
+            TransitionManager.beginDelayedTransition(card);
+            button.setVisibility(View.VISIBLE);*/
+        }else if(newState.equals(SlidingUpPanelLayout.PanelState.COLLAPSED)){
+            button.setVisibility(View.VISIBLE);
+            if(con.isPlaying()){
+                Log.i("llll","isplaying");
+                button.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.pause));
+            }else{
+                button.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.play));
+            }
+        }
+    }
+
+    public void setmetadata(MediaMetadataCompat metadataCompat){
+        refreshPanel();
+    }
+    public void setstate(PlaybackStateCompat stateCompat){
+        if(stateCompat!=null) {
+            Log.i("mjkl", "setstate state is not null");
+            switch (stateCompat.getState()) {
+                case PlaybackStateCompat.STATE_PLAYING: {
+                    Log.i("mjkl", "set state playing state ");
+                    seticon(true);
+                    break;
+                }
+                case PlaybackStateCompat.STATE_PAUSED: {
+                    Log.i("mjkl", "set state paused state ");
+                    seticon(true);
+                    break;
+                }
+                default:
+            }
+        }else{
+            Log.i("mjkl", "setstate state is null");
+            seticon(false);
+        }
+    }
+
+    public void updateseekbarAsync() {
+        Long dur=con.getDuration()/1000L;
+        Log.i("mmmm","updateseekbar main .. method called");
+
+        if(!con.isnull() && con.isPlaying()){
+            Log.i("mmmm","setmax="+String.valueOf(setmax));
+
+            if(dur>0 && !(dur.equals(setmax))  ){
+                seekBar.setMax(Integer.parseInt(String.valueOf(dur)));
+                int timesec=Integer.parseInt(String.valueOf(dur));
+                total.setText(gettime(timesec));
+                setmax=dur;
+                Log.i("mmmm","seekbar setmax updated");
+                //
+
+            }
+            Log.i("mmmm","background: getDuration setmax"+String.valueOf(dur));
+            Current_time=gettime(Integer.parseInt(String.valueOf(con.getcurrentplaybacktime()/1000L)));
+            Log.i("kkkk","current string:"+Current_time);
+
+            current.setText(Current_time);
+            // Log.i("kkkk","getcurrentplaybacktime:"+String.valueOf(con.getcurrentplaybacktime()/1000L));
+            seekBar.setProgress(Integer.parseInt(String.valueOf(con.getcurrentplaybacktime()/1000L)));
+            Log.i("kkkk","updateseekbar");
+        }
+    }
+    public class updateseekbar1 extends AsyncTask<Void,Void,Void>{
+
+        private boolean canrun=true;
+        @Override
+        protected void onPreExecute() {
+            Log.i("kkkk","onpreexecute---------------");
+
+            super.onPreExecute();
+        }
+
+        @Override
+        protected void onCancelled() {
+            super.onCancelled();
+            canrun=false;
+        }
+
+        @Override
+        protected Void doInBackground(Void... params) {
+            // Log.i("kkkk","doinbackground11");
+            while (canrun) {
+                Log.i("kkkk"," canrun main doinbackground");
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                publishProgress();
+            }
+            return null;
+        }
+
+        @Override
+        protected void onProgressUpdate(Void... values) {
+            // Log.i("bnbn",con.isPlaying()+" "+con.getcurrentplaybacktime());
+            updateseekbarAsync();
+            super.onProgressUpdate(values);
+        }
+    }
+
+
 }
 
 

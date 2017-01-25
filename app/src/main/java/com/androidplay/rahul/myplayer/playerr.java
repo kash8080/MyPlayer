@@ -5,12 +5,9 @@ import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
-import android.graphics.LinearGradient;
-import android.graphics.Shader;
 import android.graphics.drawable.Animatable;
 import android.graphics.drawable.Drawable;
-import android.graphics.drawable.ShapeDrawable;
-import android.graphics.drawable.shapes.RectShape;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.RemoteException;
@@ -35,6 +32,8 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
+
+import com.squareup.picasso.Picasso;
 
 public class playerr extends AppCompatActivity implements View.OnClickListener,SeekBar.OnSeekBarChangeListener{
 
@@ -116,9 +115,7 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
         Log.i("kkkk","oncreate---------------");
 
         initialise();
-        setrepeatbutton(false);
-        setshufflebutton(false);
-        seticon(false);
+
 
         //-----------kk-k--k
         connectControllerToSession(con.getMediaSessionToken());
@@ -213,6 +210,9 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
     @Override
     protected void onResume() {
         super.onResume();
+        setrepeatbutton(false);
+        setshufflebutton(false);
+        seticon(false);
         controllerCompat.registerCallback(callback);
         currentPlaybackstate=controllerCompat.getPlaybackState();
 
@@ -314,7 +314,11 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
             seekBar.setMax(Integer.parseInt(String.valueOf(timemilli /1000L )));
             seekBar.setProgress((currtm));
             if(bitmap!=null){
-                image.setImageBitmap(bitmap);
+                //image.setImageBitmap(bitmap);
+                Picasso.with(this)
+                        .load(Uri.parse("file://"+current_song.getImagepath()))
+                        .error(R.drawable.guitar)
+                        .into(image);
                 Palette palette=Palette.from(bitmap).generate();
                 Palette.Swatch swatch;
                 try {
@@ -328,9 +332,13 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
                 gradient_back.setBackground(ContextCompat.getDrawable(this,R.drawable.grad));
 
             }else{
-                image.setImageResource(R.drawable.mp3full);
+                //image.setImageResource(R.drawable.guitar);
+                Picasso.with(this)
+                        .load(R.drawable.guitar)
+                        .error(R.drawable.mp3)
+                        .into(image);
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    getWindow().setStatusBarColor(Color.GRAY);
+                    getWindow().setStatusBarColor(Color.BLACK);
                 }
             }
 
@@ -418,8 +426,6 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
             case R.id.repeat :{
 
                 Log.i("mmmm","repeat");
-
-                Log.i("mmmm","repeat: getDuration "+String.valueOf(con.getDuration()/1000L));
                 if(isrepeat){
                     isrepeat=false;
                     con.setRepeat(false);

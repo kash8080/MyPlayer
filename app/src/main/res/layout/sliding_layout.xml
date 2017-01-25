@@ -3,6 +3,7 @@
     android:orientation="vertical"
     android:background="@color/colorAccent"
     android:layout_height="match_parent"
+    android:id="@+id/bottom_slide"
     xmlns:android="http://schemas.android.com/apk/res/android">
 
     <android.support.v7.widget.Toolbar
@@ -78,12 +79,12 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:id="@+id/player_image"
-            android:src="@drawable/mp3full"
             android:background="#555555"
             />
         <View
             android:layout_width="match_parent"
             android:id="@+id/control_back_colour"
+            android:background="#55000000"
             android:layout_height="match_parent"
             >
         </View>

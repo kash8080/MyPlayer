@@ -25,6 +25,7 @@ public class pageradapter extends FragmentStatePagerAdapter {
     }
     @Override
     public Fragment getItem(int position) {
+
         return list.get(position);
        /*if(position==0) return new home();
         else if(position==1) return new Albums();
@@ -35,11 +36,13 @@ public class pageradapter extends FragmentStatePagerAdapter {
             case 0:list.set(0,new home());
             case 1:list.set(1,new Albums());
             case 2:list.set(2,new playlist());
+            case 3:list.set(2,new Artist());
         }
     }
+
     @Override
     public int getCount() {
-        return 3;
+        return 4;
     }
 
     @Override
@@ -48,7 +51,7 @@ public class pageradapter extends FragmentStatePagerAdapter {
            case 0: return "All tracks";
            case 1: return "Albums";
            case 2: return "Playlists";
-           case 3: return "playlists";
+           case 3: return "Artists";
            case 4: return "Playlists";
            default: return "";
 

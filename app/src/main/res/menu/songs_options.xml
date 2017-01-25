@@ -16,6 +16,22 @@
         android:id="@+id/psongs_add_to_playlist"
         >
     </item>
+    <item android:title="More from Artist"
+        android:id="@+id/psongs_moreFromArtist"
+        >
+    </item>
+    <item android:title="Open Album"
+        android:id="@+id/psongs_OpenAlbum"
+        >
+    </item>
+    <item android:title="Share"
+        android:id="@+id/psongs_share"
+        >
+    </item>
+    <item android:title="Rename"
+        android:id="@+id/psongs_Rename"
+        >
+    </item>
     <item android:title="Delete"
         android:id="@+id/psongs_delete"
         >

@@ -15,12 +15,13 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                  android:id="@+id/player_image"
-                 android:src="@drawable/mp3full"
-
+                 android:src="@drawable/guitar"
+                    android:scaleType="centerCrop"
                  />
             <View
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:background="#55000000"
                 android:id="@+id/foreground_image_colour"
                >
             </View>
