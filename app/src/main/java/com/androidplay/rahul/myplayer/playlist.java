@@ -22,7 +22,7 @@ import java.util.ArrayList;
 public class playlist extends Fragment {
 
     final static String tag="tstng1";
-    ArrayList<songs> playlist_list;
+    ArrayList<songs> playlist_list=new ArrayList<>();
     RecyclerView rec_view;
     RecyclerView.LayoutManager mlayoutmanager;
     recycler_adapter adapter;
@@ -33,14 +33,13 @@ public class playlist extends Fragment {
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        Log.i("wesd", "createview:");
+        Log.i("rtgh", "createview:");
 
         View v=inflater.inflate(R.layout.activity_playlist,container,false);
         resolver = context.getContentResolver();
         playlist_list=new ArrayList<>();
         rec_view=(RecyclerView)v.findViewById(R.id.recview);
         mlayoutmanager=new LinearLayoutManager(getActivity());
-        get_playlist();
         adapter=new recycler_adapter(getActivity(),playlist_list,"playlist");
         rec_view.setLayoutManager(mlayoutmanager);
         rec_view.setAdapter(adapter);
@@ -53,7 +52,7 @@ public class playlist extends Fragment {
 
     @Override
     public void onAttach(Context context) {
-        Log.i("wesd", "onattach:");
+        Log.i("rtgh", "onattach:");
         this.context=context;
         super.onAttach(context);
 
@@ -62,19 +61,25 @@ public class playlist extends Fragment {
 
     @Override
     public void onResume() {
-        Log.i("wesd", "onresume:");
+        Log.i("rtgh", "onresume:");
 
         super.onResume();
+        get_playlist();
        // refreshview();
     }
 
     public void refreshview(){
-        doasync inback=new doasync();
-        inback.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        Log.i("rtgh","refresh view");
+
+        if(getActivity()!=null) {
+            doasync inback = new doasync();
+            inback.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        }
     }
 
     @Override
     public void onDestroyView() {
+        Log.i("rtgh","destroy");
         super.onDestroyView();
         //cancelled=true;
     }
@@ -83,12 +88,10 @@ public class playlist extends Fragment {
         Log.i("wesd", "getplaylist:");
 
         ArrayList<songs> playlist_list=new ArrayList<>();
-       final ContentResolver resolver = context.getContentResolver();
+       final ContentResolver resolver = getActivity().getContentResolver();
        final Uri uri = MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI;
        final String idKey = MediaStore.Audio.Playlists._ID;
        final String nameKey = MediaStore.Audio.Playlists.NAME;
-      final String songs= MediaStore.Audio.Playlists._COUNT;
-
 
        final String[] columns = { idKey, nameKey };
        final Cursor playLists = resolver.query(uri, columns, null, null, null);
@@ -119,8 +122,8 @@ public class playlist extends Fragment {
           try{ playLists.close();}catch (Exception e){e.printStackTrace();}
        }
        this.playlist_list=playlist_list;
-        this.playlist_list=playlist_list;
-            //adapter.notifyDataSetChanged();
+        adapter.songs_list=playlist_list;
+        adapter.notifyDataSetChanged();
          return playlist_list;
 
    }

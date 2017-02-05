@@ -13,45 +13,57 @@
     sothree:umanoDragView="@+id/dragView2"
     android:clickable="true"
     sothree:umanoShadowHeight="4dp">
-
-<LinearLayout
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    >
-
-    <android.support.v7.widget.Toolbar
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:theme="@style/toolbar"
-        android:id="@+id/now_toolbar"
-        app:popupTheme="@style/AppTheme.PopupOverlay"
-        >
-    </android.support.v7.widget.Toolbar>
+        android:id="@+id/Main_frame"
+        android:layout_height="match_parent">
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:id="@+id/main_background_image"
+            android:scaleType="centerCrop"
+            />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            >
 
-    <RelativeLayout
-        android:layout_height="match_parent"
-        android:layout_width="match_parent"
-        >
-    <android.support.v7.widget.RecyclerView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:id="@+id/now_recview"
-        android:layout_marginRight="10dp"
-        android:layout_marginEnd="10dp"
-        >
-    </android.support.v7.widget.RecyclerView>
+            <android.support.v7.widget.Toolbar
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:theme="@style/toolbar"
+                android:id="@+id/now_toolbar"
+                app:popupTheme="@style/AppTheme.PopupOverlay"
+                >
+            </android.support.v7.widget.Toolbar>
 
-    <xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScroller
-        android:id="@+id/fast_scroller3"
-        android:layout_width="20dp"
-        android:layout_height="match_parent"
-        android:layout_alignParentEnd="true"
-        android:layout_alignParentRight="true" />
+            <RelativeLayout
+                android:layout_height="match_parent"
+                android:layout_width="match_parent"
+                >
+                <android.support.v7.widget.RecyclerView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:id="@+id/now_recview"
+                    android:layout_marginRight="10dp"
+                    android:layout_marginEnd="10dp"
+                    >
+                </android.support.v7.widget.RecyclerView>
 
-</RelativeLayout>
-</LinearLayout>
+                <xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScroller
+                    android:id="@+id/fast_scroller3"
+                    android:layout_width="20dp"
+                    android:layout_height="match_parent"
+                    android:layout_alignParentEnd="true"
+                    app:rfs_handleColor="#00BCD4"
+                    android:layout_alignParentRight="true" />
 
+             </RelativeLayout>
+
+        </LinearLayout>
+
+    </FrameLayout>
     <include
         layout="@layout/sliding_layout"
         android:layout_width="match_parent"

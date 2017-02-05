@@ -17,7 +17,7 @@ public class songs implements Serializable {
     private int no_of_songs ;
     boolean clicked=false;
     private String Data="";
-
+    private int sortorder;
     //for artist
     private String numberOfAlbums;
     private String numberOfTracks;
@@ -165,5 +165,13 @@ public class songs implements Serializable {
 
     public void setArtistkey(String artistkey) {
         this.artistkey = artistkey;
+    }
+
+    public int getSortorder() {
+        return sortorder;
+    }
+
+    public void setSortorder(int sortorder) {
+        this.sortorder = sortorder;
     }
 }

@@ -25,6 +25,29 @@
         <!-- specify shared element transitions -->
 
     </style>
+    <style name="AppThemeDark" parent="Theme.AppCompat.NoActionBar">
+
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:windowContentOverlay">@null</item>
+
+        <!--  It should be true otherwise action mode will not overlay toolbar -->
+                <item name="windowActionModeOverlay">true</item>
+         
+        <!--  For Custom Action Mode Background Color/Drawable -->
+                <item name="actionModeBackground">@color/colorPrimaryLight</item>
+                <item name="actionBarPopupTheme">@style/ThemeOverlay.AppCompat.Light</item>
+
+        <!-- for fast enter transitions -->
+        <item name="android:windowAllowEnterTransitionOverlap">true</item>
+        <item name="android:windowAllowReturnTransitionOverlap">true</item>
+        <!-- enable window content transitions -->
+            <item name="android:windowActivityTransitions">true</item>
+        <!-- specify shared element transitions -->
+
+    </style>
 
     <style name="AppTheme.NoActionBar">
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
@@ -73,6 +96,12 @@
         <item name="actionModeBackground">@color/colorPrimaryLightbrown</item>
 
     </style>
+    <style name="AppThemeDark.night">
+        <item name="colorPrimary">@color/colorPrimarynight</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDarknight</item>
+        <item name="colorAccent">@color/colorAccentnight</item>
+        <item name="actionModeBackground">@color/colorPrimaryLightnight</item>
 
+    </style>
 
 </resources>

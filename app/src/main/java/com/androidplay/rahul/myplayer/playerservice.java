@@ -1,5 +1,6 @@
     package com.androidplay.rahul.myplayer;
 
+    import android.Manifest;
     import android.app.Activity;
     import android.app.ActivityManager;
     import android.app.Notification;
@@ -16,11 +17,14 @@
     import android.graphics.Bitmap;
     import android.graphics.BitmapFactory;
     import android.media.AudioManager;
+    import android.media.audiofx.Equalizer;
     import android.net.Uri;
+    import android.os.AsyncTask;
     import android.os.Binder;
     import android.os.IBinder;
     import android.preference.PreferenceManager;
     import android.support.v4.app.TaskStackBuilder;
+    import android.support.v4.content.ContextCompat;
     import android.support.v4.media.session.MediaButtonReceiver;
     import android.support.v7.app.NotificationCompat;
     import android.support.v4.media.MediaDescriptionCompat;
@@ -63,14 +67,14 @@
 
         public static ExoPlayer player;
         public static Long current_id = null;
-        static MediaCodecAudioTrackRenderer audioRenderer;
+         MediaCodecAudioTrackRenderer audioRenderer;
         static ExtractorSampleSource sampleSource;
         static DataSource dataSource;
         static Context myContext;
         public static boolean shuffle = false;
         private static Bitmap bitmap;
         public static int current_pos = -1;
-        public static boolean repeat = false;
+        public static int repeat = 0;
         static boolean initialsetup=true;
         public static ArrayList<songs> mylist;
         public static Context activitycontext;
@@ -78,7 +82,7 @@
         //mediasessioncompat
         static MediaSessionCompat msession ;
         AudioManager audioManager;
-        public boolean hasfocus=false;
+        public static boolean hasfocus=false;
         NotificationCompat.Builder mBuilder;
         NotificationManager mNotificationManager;
         private static int playpausenoti=R.drawable.pause_white;
@@ -87,12 +91,37 @@
         private Long savedSeekto=100L;
         boolean losstransient=false;
         static SharedPreferences sp;
+        static boolean restoredsong=false;
 
+        Equalizer equalizer;
+        ArrayList<String> presetlist;
+
+        public static Boolean previousstatesaved=false;
         public playerservice() {
             Log.i("qwsd","service constructor");
 
         }
+        public void setEverything(){
+            if(msession==null) {
+                //ComponentName eventReceiver = new ComponentName(getPackageName(), RemoteMediaReceiver.class.getName());
+                msession = new MediaSessionCompat(this,playerservice.class.getSimpleName());//-----------
+                msession.setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS | MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS);
+                // msession.setPlaybackToLocal(AudioManager.STREAM_MUSIC);
+                msession.setCallback(new mediacallback());
+            }
+            if(player==null) {
+                setplayer();
+            }
+            if(mylist==null || mylist.size()==0) {
+                mylist = new ArrayList<>();
+                readlistfromMemory();
+            }
+            //sp = myContext.getSharedPreferences("MyPlayer_controls", Activity.MODE_PRIVATE);
+            sp = this.getSharedPreferences("MyPlayer_controls", Activity.MODE_PRIVATE);
+            repeat=sp.getInt("isRepeat",1);
+            shuffle=sp.getBoolean("isShuffle",false);
 
+        }
         @Override
         public IBinder onBind(Intent intent) {
             Log.i("qwsd","service bind");
@@ -125,6 +154,7 @@
             Log.i("qwsd","service oncreste");
             super.onCreate();
             myContext=this;
+            presetlist=new ArrayList<>();
             if(msession==null) {
                 //ComponentName eventReceiver = new ComponentName(getPackageName(), RemoteMediaReceiver.class.getName());
                 msession = new MediaSessionCompat(this,playerservice.class.getSimpleName());//-----------
@@ -137,7 +167,7 @@
             readlistfromMemory();
             sp = myContext.getSharedPreferences("MyPlayer_controls", Activity.MODE_PRIVATE);
             sp = this.getSharedPreferences("MyPlayer_controls", Activity.MODE_PRIVATE);
-            repeat=sp.getBoolean("isRepeat",false);
+            repeat=sp.getInt("isRepeat",1);
             shuffle=sp.getBoolean("isShuffle",false);
 
         }
@@ -151,7 +181,10 @@
         }
 
         public void setcontext(Context contextt) {
+            Log.i("qwsd","service setcontext");
+            Log.i("qwsd","setcontext foreground="+isServiceRunningInForeground(this,playerservice.class));
 
+            setEverything();
             this.activitycontext=contextt;
             if(initialsetup){
                 restoreCurrentSongValue();
@@ -160,7 +193,7 @@
             if(hasfocus) {
                 msession.setActive(true);
             }
-            //buildnotification();
+            Log.i("qwsd","setcontext foreground="+isServiceRunningInForeground(this,playerservice.class));
         }
         @Override
         public void onDestroy() {
@@ -173,9 +206,10 @@
                 player.release();
                 audioManager.abandonAudioFocus(this);
                 msession.release();
-                //stopfg(true)
             }catch (Exception e){}
-            try{mNotificationManager.cancel(400);
+            try{
+                stopForeground(true);
+                mNotificationManager.cancel(400);
             }catch (Exception e){}
 
             super.onDestroy();
@@ -183,10 +217,31 @@
 
         @Override
         public void onTaskRemoved(Intent rootIntent) {
-            Log.i("qwsd","ontaskremoved");
-            super.onTaskRemoved(rootIntent);
-            onDestroy();
+            //Log.i("qwsd","ontaskremoved foreground="+isServiceRunningInForeground(this,playerservice.class));
 
+            savelistToMemory();
+            savecurrentsonginfo();
+
+            if(!isServiceRunningInForeground(this,playerservice.class)) {
+                try {
+                    unregisterReceiver(mbreceiver);
+                    player.stop();
+                    player.release();
+                    audioManager.abandonAudioFocus(this);
+                    msession.release();
+                } catch (Exception e) {
+                }
+                try {
+                    stopForeground(true);
+                    mNotificationManager.cancel(400);
+                } catch (Exception e) {
+                }
+            }else{
+                pause();
+            }
+
+            //Log.i("qwsd","ontaskremoved afterstopforeground foreground="+isServiceRunningInForeground(this,playerservice.class));
+            super.onTaskRemoved(rootIntent);
         }
 
         public  void setplayer() {
@@ -301,7 +356,7 @@
 
             .setStyle(new NotificationCompat.MediaStyle()
                                     .setShowActionsInCompactView(1)
-                                     .setShowCancelButton(true)
+                                    .setShowCancelButton(true)
                                     .setCancelButtonIntent(getactionintent(KeyEvent.KEYCODE_MEDIA_STOP))
                                     .setMediaSession(msession.getSessionToken()));
             if(isPlaying()){
@@ -329,113 +384,40 @@
 
         }
 
+        boolean canplay=true;
         //////////exoplayer controls
-        public static boolean isnull() {
-            if (player == null) {
-                return true;
-            } else return false;
-        }
-        public static boolean isRepeat() {
-            return repeat;
-        }
-        public static void setRepeat(boolean repeat) {
-            playerservice.repeat = repeat;
-            sp = myContext.getSharedPreferences("MyPlayer_controls", Activity.MODE_PRIVATE);
-            SharedPreferences.Editor editor = sp.edit();
-            editor.putBoolean("isRepeat",repeat);
-            editor.commit();
-        }
-        public static boolean isShuffle() {
-            return shuffle;
-        }
-        public void setShuffle(boolean shuffle) {
-            playerservice.shuffle = shuffle;
-            sp = this.getSharedPreferences("MyPlayer_controls", Activity.MODE_PRIVATE);
-            SharedPreferences.Editor editor = sp.edit();
-            editor.putBoolean("isShuffle",shuffle);
-            editor.commit();
-        }
-        public static void setMylist(ArrayList<songs> list) {
-            Log.i("qwsd","setmylist service");
-            mylist = list;
-        }
-        public static int getCurrentPosition() {
-            return current_pos;
-        }
-        public static void setCurrent_pos(int current_pos1) {
-            current_pos = current_pos1;
-        }
-        public void pause() {
-            Log.i("playy","pause");
-            //stopfg(false)
-        if (player != null) {
-            try{
-                unregisterReceiver(mbreceiver);
-                player.setPlayWhenReady(false);
-                setstate();
-                updateplaypause();
-            }catch (Exception e){e.printStackTrace();}
-
-        }
-        }
-        public static songs getsong() {
-            if (mylist != null && current_pos != -1 && mylist.size()>current_pos) {
-                return mylist.get(current_pos);
-            } else if (mylist != null && current_pos == -1 && mylist.size() > 0) {
-                current_pos = 0;
-                mylist.get(current_pos);
+        public class setcanplay extends AsyncTask<Integer,Void,Void>{
+            int iss;
+            int pos;
+            @Override
+            protected Void doInBackground(Integer... voids) {
+                iss=voids[0];
+                if(iss==1) {
+                    pos = voids[1];
+                }
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                return null;
             }
-            return null;
-        }
-        public  void resume() {
-                if(!hasfocus){
-                    askaudio();
-                }
-        Log.i("fdfd","resume " + String.valueOf(getDuration()));
 
-            //startfg
-
-            if(getDuration()==-1){
-                Log.i("fdfd","resume -1");
-                if(current_pos==-1){
-                    current_pos=0;
-                }
-                playsong(current_pos);
-
-            }else {
-                Log.i("fdfd","resume ! -1");
-
-                if (player != null && !player.getPlayWhenReady()) {
-                    try {
-                        registerReceiver(mbreceiver, intentfilter);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    player.setPlayWhenReady(true);
-                    setstate();
-                    updateplaypause();
-                } else {
-                    playsong(0);
+            @Override
+            protected void onPostExecute(Void aVoid) {
+                super.onPostExecute(aVoid);
+                canplay=true;
+                if(iss==1){
+                    playsong(pos);
                 }
             }
         }
-        public static void seekTo(Long positionms) {
-            if (player != null) {
-                //  Log.i("kkkk","player.seekto:"+String.valueOf(positionms));
-                player.seekTo(positionms);
-
-            }
-
-        }
-        public static Long getDuration() {
-            if (player != null) {
-                return player.getDuration();
-            } else return 0L;
-        }
+        boolean can_play=true;
+        boolean should_resume=false;
         public void playsong(int pos) {
-            Log.i("bnbnn", "playsong at pos="+String.valueOf(pos));
-            Log.i("playy","play");
+            Log.i("playy", "playsong at pos="+String.valueOf(pos));
 
+            Log.i("equall", "playsong start pos="+pos);
             currentsongno=String.valueOf(pos);
             if(mylist==null){
                 mylist=new ArrayList<>();
@@ -447,7 +429,7 @@
             }
 
             if(hasfocus) {
-                Log.i("bnbnn", "playsong has focus");
+                Log.i("playy", "playsong has focus");
                 try {
                     current_pos = pos;
                     Log.i("bnbn", "playnext" + mylist.size() + " " + current_pos);
@@ -473,17 +455,61 @@
 
                     dataSource = new DefaultUriDataSource(this, null, userAgent);
                     sampleSource = new ExtractorSampleSource(trackUri, dataSource, allocator, BUFFER_SEGMENT_SIZE * BUFFER_SEGMENT_COUNT);
-                    audioRenderer = new MediaCodecAudioTrackRenderer(sampleSource, MediaCodecSelector.DEFAULT);
+                    //audioRenderer = new MediaCodecAudioTrackRenderer(sampleSource, MediaCodecSelector.DEFAULT);
+                    audioRenderer = new MediaCodecAudioTrackRenderer(sampleSource,MediaCodecSelector.DEFAULT);
+                    /*{
+                        @Override
+                        public void onAudioSessionId(int audioSessionId) {
+                            Log.i("equall","onaudiosessionid="+audioSessionId);
+                               /* releaseEqualizer();
+                                equalizer = new Equalizer(10, audioSessionId);
+                                // Configure equalizer here.
+
+                                //short[] range = equalizer.getBandLevelRange();
+
+                                //equalizer.usePreset((short) 0);
+                                equalizer.setEnabled(true);
+
+                        }
+
+                        @Override
+                        public void onDisabled() {
+                            Log.i("equall","ondisabled=");
+
+                            //releaseEqualizer();
+                        }
+
+                        private void releaseEqualizer() {
+                            Log.i("equall","releaseEqualizer start");
+
+                            if (equalizer != null) {
+                                Log.i("equall","releaseEqualizer releasing equaliser!=null");
+                                equalizer.release();
+                                equalizer = null;
+                            }
+                        }
+
+
+                    };
+            */
+                    Log.i("equall","preparing audio renderer");
                     player.prepare(audioRenderer);
                     // 3. Start playback.
+                   // player.sendMessage(audioRenderer, MediaCodecAudioTrackRenderer.MSG_SET_VOLUME, 0f);
+                    Log.i("equall","setPlayWhenReady");
+
                     player.setPlayWhenReady(true);
+
                     Log.i("exoo", "--");
                     player.seekTo(100L);
 
                     setstate();
                     setmetadata();
                     buildnotification();
+                    startForeground(ONGOING_NOTIFICATION_ID,mBuilder.build());
                     updateplaypause();
+                     //async as=new async();
+                        //as.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
 
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -493,11 +519,133 @@
                 }
 
             }else{
-                askaudio();
+                askaudio(pos);
+                should_resume=true;
             }
             Log.i("bnbn", "isplaying:" + isnull() + isPlaying());
-            Log.i("bnbn", "playsong ended");
+            Log.i("equall", "playsong ended");
+        }
+        public class async extends AsyncTask<Void,Void,Void>{
 
+            @Override
+            protected Void doInBackground(Void... voids) {
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                return null;
+            }
+
+            @Override
+            protected void onPostExecute(Void aVoid) {
+                super.onPostExecute(aVoid);
+                pause();
+            }
+        }
+        public void pause() {
+            Log.i("playy","pause");
+            //stopfg(false)
+            if (player != null) {
+                try{
+                    unregisterReceiver(mbreceiver);
+                    player.setPlayWhenReady(false);
+                    setstate();
+                    updateplaypause();
+                    stopForeground(false);
+                }catch (Exception e){e.printStackTrace();}
+
+            }
+        }
+        public  void resume() {
+            Log.i("fdfd","resume " + String.valueOf(getDuration()));
+
+            if(!hasfocus){
+                askaudio(-1);
+                return;
+            }
+
+            if(getDuration()==-1){
+                Log.i("fdfd","resume -1");
+                if(current_pos==-1){
+                    current_pos=0;
+                }
+                playsong(current_pos);
+
+            }else {
+                Log.i("fdfd","resume ! -1");
+
+                if (player != null && !player.getPlayWhenReady()) {
+                    try {
+                        registerReceiver(mbreceiver, intentfilter);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    player.setPlayWhenReady(true);
+                    setstate();
+                    startForeground(ONGOING_NOTIFICATION_ID,mBuilder.build());
+                    updateplaypause();
+                } else {
+                    playsong(0);
+                }
+            }
+        }
+        public static boolean isnull() {
+            if (player == null) {
+                return true;
+            } else return false;
+        }
+        public static int isRepeat() {
+            return repeat;
+        }
+        public static void setRepeat(int repeat) {
+            playerservice.repeat = repeat;
+            sp = myContext.getSharedPreferences("MyPlayer_controls", Activity.MODE_PRIVATE);
+            SharedPreferences.Editor editor = sp.edit();
+            editor.putInt("isRepeat",repeat);
+            editor.commit();
+        }
+        public static boolean isShuffle() {
+            return shuffle;
+        }
+        public void setShuffle(boolean shuffle) {
+            playerservice.shuffle = shuffle;
+            sp = this.getSharedPreferences("MyPlayer_controls", Activity.MODE_PRIVATE);
+            SharedPreferences.Editor editor = sp.edit();
+            editor.putBoolean("isShuffle",shuffle);
+            editor.commit();
+        }
+        public static void setMylist(ArrayList<songs> list) {
+            Log.i("qwsd","setmylist service");
+            mylist = list;
+        }
+        public static int getCurrentPosition() {
+            return current_pos;
+        }
+        public static void setCurrent_pos(int current_pos1) {
+            current_pos = current_pos1;
+        }
+        public static songs getsong() {
+            if (mylist != null && current_pos != -1 && mylist.size()>current_pos) {
+                return mylist.get(current_pos);
+            } else if (mylist != null && current_pos == -1 && mylist.size() > 0) {
+                current_pos = 0;
+                mylist.get(current_pos);
+            }
+            return null;
+        }
+        public static void seekTo(Long positionms) {
+            if (player != null) {
+                //  Log.i("kkkk","player.seekto:"+String.valueOf(positionms));
+                player.seekTo(positionms);
+
+            }
+
+        }
+        public static Long getDuration() {
+            if (player != null) {
+                return player.getDuration();
+            } else return 0L;
         }
 
         public static boolean isPlaying() {
@@ -514,10 +662,10 @@
             }
         }
         public  void playnext() {
-            if (repeat){
+            if (repeat==2){
 
                 playsong(current_pos);
-            } else {
+            }else if(repeat==1){
                 if (shuffle) {
                     playsong(getrandno());
 
@@ -529,14 +677,18 @@
                     }
                     playsong(current_pos);
                 }
+            }else{
+                playsong(current_pos);
+                async as=new async();
+                as.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
             }
 
         }
         public  void playprev() {
-            if (repeat) {
+            if (repeat==2) {
 
                 playsong(current_pos);
-            } else {
+            } else if(repeat==1){
                 if (shuffle) {
                     playsong(getrandno());
 
@@ -549,6 +701,10 @@
 
                     playsong(current_pos);
                 }
+            }else{
+                playsong(current_pos);
+                async as=new async();
+                as.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
             }
         }
         public static Long getcurrentplaybacktime(){
@@ -594,8 +750,12 @@
         }
         public static int getrandno(){
             Random rand =new Random();
-            int randomno =rand.nextInt(mylist.size()-1);
-            return randomno;
+            if(mylist.size()<=1){
+                return current_pos;
+            }else {
+                int randomno = rand.nextInt(mylist.size() - 1);
+                return randomno;
+            }
         }
         public static void addsongstolist(ArrayList<songs> songlist){
             for(songs s:songlist){
@@ -695,14 +855,30 @@
         public static void restoreCurrentSongValue(){
             Log.e("playy", "restorecurrentsonginfo");
 
-            //position,seek value
-            SharedPreferences sp = myContext.getSharedPreferences("MyPlayer_CurrentsongInfo", Activity.MODE_PRIVATE);
-            int pos=sp.getInt("service_currentSongPositionInList",0);
-            final Long seek=sp.getLong("service_currentSongSeekValue",100);
-            ((playerservice)myContext).playsong(pos);
-            seekTo(seek);
-            ((playerservice) myContext).pause();
-            //play song and pause it back to restore it
+            if(ApplicationController.needforpermissions(Manifest.permission.READ_EXTERNAL_STORAGE)){
+
+            }else {
+                if(hasfocus) {
+                    Log.e("playy", "restored currentsonginfo");
+                    //position,seek value
+                    previousstatesaved = true;
+                    SharedPreferences sp = myContext.getSharedPreferences("MyPlayer_CurrentsongInfo", Activity.MODE_PRIVATE);
+                    int pos = sp.getInt("service_currentSongPositionInList", 0);
+                    current_pos = pos;
+                    final Long seek = sp.getLong("service_currentSongSeekValue", 100);
+                    ((playerservice) myContext).playsong(pos);
+                    seekTo(seek);
+                    ((playerservice) myContext).pause();
+                    try {
+                        ((playerservice) myContext).mNotificationManager.cancel(400);
+                    } catch (Exception e) {
+                    }
+                    restoredsong = true;
+                    //play song and pause it back to restore it
+                }else{
+                    ((playerservice)myContext).askaudio(-2);
+                }
+            }
         }
 
             // for pausing music after removing headphones .. we will register/unregister this with play/pause
@@ -734,13 +910,6 @@
                 super.onPlay();
                 Log.i("playy","on play");
                 resume();
-                //NotificationCompat.getAction(mBuilder.build(),1).icon=R.drawable.pause_white;
-               /* playpausenoti=R.drawable.pause_white;
-                mBuilder.mActions.get(1).icon=playpausenoti;
-                mNotificationManager.notify(400,mBuilder.build());
-                */
-                //buildnotification();
-                //ApplicationController.app_refresh();
             }
 
             @Override
@@ -774,10 +943,13 @@
             public void onStop() {
                 pause();
                 Log.i("playy","on stop");
-                //stopfg(true)
                 msession.setActive(false);
-                mNotificationManager.cancel(400);
+                try {
+                    stopForeground(true);
+                    mNotificationManager.cancel(400);
+                }catch (Exception e){}
                 //ApplicationController.app_refresh();
+                audioManager.abandonAudioFocus(playerservice.this);
                 super.onStop();
             }
 
@@ -792,33 +964,54 @@
             if(isPlaying()){
                 playpausenoti=R.drawable.pause_white;
                 mBuilder.setOngoing(true);
+                try {
+                    mBuilder.mActions.get(1).icon = playpausenoti;
+                    mNotificationManager.notify(400, mBuilder.build());
+                }catch (Exception e){e.printStackTrace();}
             }else{
                 playpausenoti=R.drawable.play_white;
                 mBuilder.setOngoing(false);
+                try {
+                    mBuilder.mActions.get(1).icon = playpausenoti;
+                    mNotificationManager.notify(400, mBuilder.build());
+                }catch (Exception e){e.printStackTrace();}
             }
             Log.i("playy","updateplaypause");
-            try {
-                mBuilder.mActions.get(1).icon = playpausenoti;
-                mNotificationManager.notify(400, mBuilder.build());
-            }catch (Exception e){e.printStackTrace();}
+
            // ApplicationController.app_refresh();
         }
 
-        public void askaudio() {
+        public void askaudio(int poss) {
             Log.i("playy","askaudio start");
             audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
             int result = audioManager.requestAudioFocus(this, AudioManager.STREAM_MUSIC,AudioManager.AUDIOFOCUS_GAIN);
             if(result==AudioManager.AUDIOFOCUS_GAIN){
                 Log.i("playy"," gotaudio focus");
                 hasfocus=true;
-                if(player==null){setplayer();}
+                /*if(player==null){setplayer();}
 
                 try{
                     msession.setActive(true);
                     restoreCurrentSongValue();
                 }
                 catch (Exception e){e.printStackTrace();}
+                Log.i("playy","askaudio end");
+*/
 
+                if(player==null){setplayer();}
+                msession.setActive(true);
+                player.sendMessage(audioRenderer, MediaCodecAudioTrackRenderer.MSG_SET_VOLUME, 1f);
+
+                if(poss==-1){
+                    Log.i("playy","poss=-1");
+                    resume();
+                }else if(poss==-2){
+                    Log.i("playy","poss=-2");
+                    restoreCurrentSongValue();
+                }else{
+                    Log.i("playy","poss=playsong");
+                    playsong(poss);
+                }
             }
             Log.i("playy","askaudio end");
         }
@@ -828,24 +1021,6 @@
             switch (focusChange) {
                 case AudioManager.AUDIOFOCUS_GAIN:
                     Log.i("playy","AUDIOFOCUS_GAIN");
-                    if(player==null){setplayer();}
-                    msession.setActive(true);
-                    player.sendMessage(audioRenderer, MediaCodecAudioTrackRenderer.MSG_SET_VOLUME, 1f);
-
-                    if(!losstransient) {
-                        Log.i("playy","!losstransient");
-
-                        if (isPlaying()) {
-                            restoreCurrentSongValue();
-                            resume();
-                        } else {
-                            restoreCurrentSongValue();
-                        }
-                    }else{
-                        Log.i("playy","losstransient");
-
-                        losstransient=false;
-                    }
                     break;
 
                 case AudioManager.AUDIOFOCUS_LOSS:
@@ -857,7 +1032,9 @@
                     //player.release();
                     updateplaypause();
                     msession.setActive(false);
-                    audioManager.abandonAudioFocus(this);
+                    restoredsong=false;
+
+                    //audioManager.abandonAudioFocus(this);
                     Log.i("playy","AUDIOFOCUS_LOSS");
 
                     break;
@@ -871,7 +1048,9 @@
                     pause();
                     savecurrentsonginfo();
                     savelistToMemory();
+                    restoredsong=false;
                     updateplaypause();
+                    losstransient=true;
                     break;
 
                 case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
@@ -879,7 +1058,6 @@
                     // at an attenuated level
                     //  if (mMediaPlayer.isPlaying()) mMediaPlayer.setVolume(0.1f, 0.1f);
                     player.sendMessage(audioRenderer, MediaCodecAudioTrackRenderer.MSG_SET_VOLUME, .4f);
-                    losstransient=true;
 
                     Log.i("playy","AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK");
                     break;
@@ -896,5 +1074,35 @@
             return PendingIntent.getBroadcast(this,mediakeyevent,intent,0);
         }
 
+        public static boolean isServiceRunningInForeground(Context context, Class<?> serviceClass) {
+            ActivityManager manager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+            for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+                if (serviceClass.getName().equals(service.service.getClassName())) {
+                    if (service.foreground) {
+                        return true;
+                    }
+
+                }
+            }
+            return false;
+        }
+
+
+        public ArrayList<String> getPresetList(){
+            if(equalizer!=null) {
+                presetlist = new ArrayList<>();
+                for (short i = 0; i < equalizer.getNumberOfPresets(); i++) {
+                    presetlist.add(equalizer.getPresetName(i));
+                }
+                return presetlist;
+            }else return new ArrayList<>();
+        }
+        public void setPresetList(int i){
+            Log.i("equall","setPresetList");
+           if(equalizer!=null) {
+               Log.i("equall","setting preset");
+               equalizer.usePreset((short) i);
+           }
+        }
 
     }

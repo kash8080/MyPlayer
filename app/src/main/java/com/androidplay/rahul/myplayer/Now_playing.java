@@ -1,6 +1,7 @@
 package com.androidplay.rahul.myplayer;
 
 import android.Manifest;
+import android.animation.Animator;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -17,6 +18,8 @@ import android.provider.MediaStore;
 import android.support.design.widget.AppBarLayout;
 import android.support.design.widget.CollapsingToolbarLayout;
 import android.support.design.widget.FloatingActionButton;
+//import android.support.v4.app.Fragment;
+import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaControllerCompat;
@@ -29,10 +32,13 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.support.v7.widget.helper.ItemTouchHelper;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewAnimationUtils;
+import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -40,6 +46,7 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.sothree.slidinguppanel.SlidingUpPanelLayout;
+import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
@@ -59,6 +66,7 @@ public class Now_playing extends AppCompatActivity implements recycler_adapter.a
     ItemTouchHelper ith;
     String method="";
     String artistname="";
+    ImageView main_backgroundimage;
 
     //slidinglayout
     Toolbar card;
@@ -76,27 +84,25 @@ public class Now_playing extends AppCompatActivity implements recycler_adapter.a
     updateseekbar1 seekbarasync;
     songs current_song;
     Long setmax=0L;
-    public boolean isrepeat,isshuffle;
+    public boolean isshuffle;
+    int isrepeat;
     boolean isplaying=false;
     MediaControllerCompat controllerCompat;
     PlaybackStateCompat currentPlaybackstate ;
     MediaMetadataCompat currentmetadata ;
 
+    SharedPreferences sharedPref;
+    String theme_no;
+    Boolean dark;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         con=new ApplicationController(this.getApplicationContext(),this);
 
-        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
-        String thme=sharedPref.getString("THEME_LIST","1") ;
-        switch (thme){
-            case "1":setTheme(R.style.AppTheme);break;
-            case "2":setTheme(R.style.AppTheme_Purple);break;
-            case "3":setTheme(R.style.AppTheme_Red);break;
-            case "4":setTheme(R.style.AppTheme_orange);break;
-            case "5":setTheme(R.style.AppTheme_indigo);break;
-            case "6":setTheme(R.style.AppTheme_brown);break;
-            default:setTheme(R.style.AppTheme);break;
-        }
+        sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+        theme_no=sharedPref.getString("THEME_LIST","1") ;
+        dark = sharedPref.getBoolean("check", false);
+        setthemecolours();
 
         if(savedInstanceState==null){
             super.onCreate(savedInstanceState);
@@ -105,7 +111,9 @@ public class Now_playing extends AppCompatActivity implements recycler_adapter.a
                 super.onCreate(new Bundle());
                 //activity trying to restore previous state which is null
                 // now because the system terminates the rocess while revoking perissions
-                startActivity(new Intent(this, MainActivity.class));
+                startActivity(new Intent(this, PermissionActivity.class));
+                finish();
+                return;
                 //finish called to stop further proccess of this activity
             }else{
                 super.onCreate(savedInstanceState);
@@ -122,12 +130,11 @@ public class Now_playing extends AppCompatActivity implements recycler_adapter.a
             artistname=intent.getStringExtra("artistname");
         }
         inititalise();
-        toolbar=(Toolbar)findViewById(R.id.now_toolbar);
         toolbar.setBackgroundColor(con.getPrimary());
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        setthemeAndBackground();
 
-        recview=(RecyclerView)findViewById(R.id.now_recview);
         mlayoutManager=new LinearLayoutManager(this);
         recview.setLayoutManager(mlayoutManager);
 
@@ -147,35 +154,34 @@ public class Now_playing extends AppCompatActivity implements recycler_adapter.a
         }else {
             now_list = con.getlist();
             getSupportActionBar().setTitle("Now Playing");
-            adapter=new recycler_adapter(this,now_list,"now_playing");
+            adapter = new recycler_adapter(this, now_list, "now_playing");
             recview.setAdapter(adapter);
 
-            VerticalRecyclerViewFastScroller fastScroller = (VerticalRecyclerViewFastScroller)findViewById(R.id.fast_scroller3);
+            VerticalRecyclerViewFastScroller fastScroller = (VerticalRecyclerViewFastScroller) findViewById(R.id.fast_scroller3);
             fastScroller.setRecyclerView(recview);
             recview.addOnScrollListener(fastScroller.getOnScrollListener());
 
-            ItemTouchHelper.SimpleCallback _ithCallback=new ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP | ItemTouchHelper.DOWN,ItemTouchHelper.LEFT ){
+            ItemTouchHelper.SimpleCallback _ithCallback = new ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP | ItemTouchHelper.DOWN, ItemTouchHelper.LEFT) {
                 //and in your imlpementaion of
                 public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
                     // get the viewHolder's and target's positions in your adapter data, swap them
-                    int from=viewHolder.getAdapterPosition();
-                    int to=target.getAdapterPosition();
-                    int current=con.getCurrentPosition();
+                    int from = viewHolder.getAdapterPosition();
+                    int to = target.getAdapterPosition();
+                    int current = con.getCurrentPosition();
 
-                    con.notifydatachange(0,from,to);
-                    if(from<current && to>=current){
+                    con.notifydatachange(0, from, to);
+                    if (from < current && to >= current) {
                         // current move up
                         current--;
                         con.setCurrent_pos(current);
-                    }
-                    else if(from>current && to<=current) {
+                    } else if (from > current && to <= current) {
                         //  current  move down
                         current++;
                         con.setCurrent_pos(current);
 
-                    }else if(from==current){
+                    } else if (from == current) {
                         //current = to
-                        current=to;
+                        current = to;
                         con.setCurrent_pos(current);
 
                     }
@@ -187,8 +193,8 @@ public class Now_playing extends AppCompatActivity implements recycler_adapter.a
 
                 @Override
                 public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
-                    int i=viewHolder.getAdapterPosition();
-                    if(direction==4) {
+                    int i = viewHolder.getAdapterPosition();
+                    if (direction == 4) {
                         adapter.notifyItemRemoved(i);
                         con.remove_song(i);
                     }
@@ -201,6 +207,34 @@ public class Now_playing extends AppCompatActivity implements recycler_adapter.a
 
 
         //slider
+        imageslide.setOnTouchListener(new OnSwipeTouchListener(this) {
+            @Override
+            public void onSwipeLeft() {
+                seekBar.setProgress(0);
+                con.playnext();
+                seekBar.setProgress(0);
+            }
+            public void onSwipeRight() {
+                seekBar.setProgress(0);
+                con.playprev();
+                seekBar.setProgress(0);
+            }
+        });
+
+        //slider
+        imageslide.setOnTouchListener(new OnSwipeTouchListener(this) {
+            @Override
+            public void onSwipeLeft() {
+                seekBar.setProgress(0);
+                con.playnext();
+                seekBar.setProgress(0);
+            }
+            public void onSwipeRight() {
+                seekBar.setProgress(0);
+                con.playprev();
+                seekBar.setProgress(0);
+            }
+        });
         set_card_visibility();
         card.setContentInsetsAbsolute(0, 0);
         connectControllerToSession(con.getMediaSessionToken());
@@ -209,6 +243,8 @@ public class Now_playing extends AppCompatActivity implements recycler_adapter.a
     }
 
     public void inititalise(){
+        toolbar=(Toolbar)findViewById(R.id.now_toolbar);
+        recview=(RecyclerView)findViewById(R.id.now_recview);
 
         //slider
         card = (Toolbar) findViewById(R.id.controller_bar);
@@ -227,6 +263,7 @@ public class Now_playing extends AppCompatActivity implements recycler_adapter.a
         total=(TextView) findViewById(R.id.total_time);
         seekBar=(SeekBar)findViewById(R.id.seekbar);
         imageslide=(ImageView)findViewById(R.id.player_image);
+        main_backgroundimage = (ImageView) findViewById(R.id.main_background_image);
 
         play_pause.setOnClickListener(this);
         previous.setOnClickListener(this);
@@ -240,6 +277,184 @@ public class Now_playing extends AppCompatActivity implements recycler_adapter.a
         slider.addPanelSlideListener(this);
 
     }
+    private void setthemecolours(){
+        if(dark){
+            setTheme(R.style.AppThemeDark_night);
+        }else {
+            switch (theme_no) {
+                case "1":
+                    setTheme(R.style.AppTheme);
+                    break;
+                case "2":
+                    setTheme(R.style.AppTheme_Purple);
+                    break;
+                case "3":
+                    setTheme(R.style.AppTheme_Red);
+                    break;
+                case "4":
+                    setTheme(R.style.AppTheme_orange);
+                    break;
+                case "5":
+                    setTheme(R.style.AppTheme_indigo);
+                    break;
+                case "6":
+                    setTheme(R.style.AppTheme_brown);
+                    break;
+                default:
+                    setTheme(R.style.AppTheme);
+                    break;
+            }
+        }
+    }
+    private void setthemeAndBackground() {
+        Boolean dark = sharedPref.getBoolean("check", false);
+        int img_no = sharedPref.getInt("image_chooser", 0);
+        if (dark) {
+            Log.i("settn", "dark");
+            main_backgroundimage.setBackgroundColor(ContextCompat.getColor(this,R.color.colorPrimaryDarknight));
+            toolbar.setAlpha(1);
+        } else {
+
+            if (img_no >= 1) {
+                Log.i("settn", "main act current value=" + img_no);
+                DisplayMetrics displaymetrics = new DisplayMetrics();
+                this.getWindowManager().getDefaultDisplay().getMetrics(displaymetrics);
+
+                int width=displaymetrics.widthPixels;
+                int height=displaymetrics.heightPixels;
+                switch (img_no) {
+                    case 1: {
+                        if (getResources().getBoolean(R.bool.is_landscape)) {
+                            //set height of cardview=width
+                            Picasso.with(this)
+                                    .load(R.drawable.coffee_land)
+                                    .resize(width, height)
+                                    .centerCrop()
+                                    .into(main_backgroundimage,picassocallback);
+                        } else {
+
+                            // create the animation (the final radius is zero)
+                            main_backgroundimage.setVisibility(View.INVISIBLE);
+                            Picasso.with(this)
+                                    .load(R.drawable.coffee)
+                                    .resize(width, height)
+                                    .centerCrop()
+                                    .into(main_backgroundimage,picassocallback);
+                        }
+                        break;
+                    }
+                    case 2: {
+                        if (getResources().getBoolean(R.bool.is_landscape)) {
+                            Picasso.with(this)
+                                    .load(R.drawable.presents_land)
+                                    .error(R.drawable.coffee_land)
+                                    .resize(width, height)
+                                    .centerCrop()
+                                    .into(main_backgroundimage,picassocallback);
+                        } else {
+                            Picasso.with(this)
+                                    .load(R.drawable.presents_port)
+                                    .error(R.drawable.coffee)
+                                    .resize(width, height)
+                                    .centerCrop()
+                                    .into(main_backgroundimage,picassocallback);
+                        }
+                        break;
+                    }
+                    case 3: {
+                        if (getResources().getBoolean(R.bool.is_landscape)) {
+                            Picasso.with(this)
+                                    .load(R.drawable.leaves_land)
+                                    .resize(width, height)
+                                    .centerCrop()
+                                    .into(main_backgroundimage,picassocallback);
+                        } else {
+                            Picasso.with(this)
+                                    .load(R.drawable.leaves_port)
+                                    .resize(width, height)
+                                    .centerCrop()
+                                    .into(main_backgroundimage,picassocallback);
+                        }
+                        break;
+                    }
+                    case 4: {
+                        if (getResources().getBoolean(R.bool.is_landscape)) {
+                            Picasso.with(this)
+                                    .load(R.drawable.leaves2_land)
+                                    .resize(width, height)
+                                    .centerCrop()
+                                    .into(main_backgroundimage,picassocallback);
+                        } else {
+                            Picasso.with(this)
+                                    .load(R.drawable.leaves2_port)
+                                    .resize(width, height)
+                                    .centerCrop()
+                                    .into(main_backgroundimage,picassocallback);
+                        }
+                        break;
+                    }
+                    case 5: {
+                        if (getResources().getBoolean(R.bool.is_landscape)) {
+                            Picasso.with(this)
+                                    .load(R.drawable.bloom_land)
+                                    .resize(width, height)
+                                    .centerCrop()
+                                    .into(main_backgroundimage,picassocallback);
+
+                        } else {
+                            Picasso.with(this)
+                                    .load(R.drawable.bloom_port)
+                                    .resize(width, height)
+                                    .centerCrop()
+                                    .into(main_backgroundimage,picassocallback);
+                        }
+                        break;
+                    }
+                }
+                //make toolbar and tablayout semitransparent for grey theme and opaque for others
+                // if (theme_no.equals("1")) {
+                toolbar.setAlpha(0.7f);
+               /* } else {
+                    appBarLayout.setAlpha(1);
+                    tablayout.setAlpha(1);
+                }*/
+            } else {
+                Log.i("settn", "not dark");
+
+                main_backgroundimage.setBackground(null);
+                main_backgroundimage.setBackgroundColor(0xffffffff);
+                toolbar.setAlpha(1);
+            }
+        }
+    }
+    public Callback picassocallback=new Callback() {
+        @Override
+        public void onSuccess() {
+            Log.i("picss","onsuccess");
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP && main_backgroundimage.isAttachedToWindow()){
+                int cx = main_backgroundimage.getWidth();
+                int cy = (main_backgroundimage.getHeight() );
+
+                // get the initial radius for the clipping circle
+                float finalradius = (float) Math.hypot(cx, cy);
+                Animator anim = ViewAnimationUtils.createCircularReveal(main_backgroundimage, 0, cy, 0,finalradius);
+                anim.setDuration(400);
+                // start the animation
+                main_backgroundimage.setVisibility(View.VISIBLE);
+                anim.start();
+            }else{
+                main_backgroundimage.setVisibility(View.VISIBLE);
+            }
+
+        }
+
+        @Override
+        public void onError() {
+            Log.i("picss","onerror");
+            main_backgroundimage.setVisibility(View.VISIBLE);
+
+        }
+    };
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -283,6 +498,10 @@ public class Now_playing extends AppCompatActivity implements recycler_adapter.a
                 AlertDialog dialog=builder.create();
                 dialog.show();
 
+            }
+            case R.id.nowplayingmenu_saveAsPlaylist:{
+                DataFetch dataFetch=new DataFetch(this);
+                dataFetch.AddtoPlaylist(now_list);
             }
             default:return super.onOptionsItemSelected(item);
         }
@@ -454,13 +673,18 @@ public class Now_playing extends AppCompatActivity implements recycler_adapter.a
                 Log.i("mmmm","repeat");
 
                 Log.i("mmmm","repeat: getDuration "+String.valueOf(con.getDuration()/1000L));
-                if(isrepeat){
-                    isrepeat=false;
-                    con.setRepeat(false);
+                isrepeat=con.isRepeat();
+                if(isrepeat==0){
+                    isrepeat=1;
+                    con.setRepeat(1);
+                    setrepeatbutton(true);
+                }else if(isrepeat==1){
+                    isrepeat=2;
+                    con.setRepeat(2);
                     setrepeatbutton(true);
                 }else{
-                    isrepeat=true;
-                    con.setRepeat(true);
+                    isrepeat=0;
+                    con.setRepeat(0);
                     setrepeatbutton(true);
                 }
                 return;
@@ -579,9 +803,13 @@ public class Now_playing extends AppCompatActivity implements recycler_adapter.a
     }
     public void setrepeatbutton(boolean animation){
         isrepeat=con.isRepeat();
-        if(isrepeat){
+        if(isrepeat==0){
+            repeat.setImageResource(R.drawable.repeat);
+        }else if(isrepeat==1){
             repeat.setImageResource(R.drawable.repeat_selected);
-        }else      repeat.setImageResource(R.drawable.repeat);
+        }else{
+            repeat.setImageResource(R.drawable.repeat_one);
+        }
 
         if(animation) {
             repeat.animate().scaleX(1.25f).scaleY(1.25f).setDuration(0).withEndAction(new Runnable() {
@@ -781,6 +1009,7 @@ public class Now_playing extends AppCompatActivity implements recycler_adapter.a
 
     public void setmetadata(MediaMetadataCompat metadataCompat){
         refreshPanel();
+        adapter.notifyDataSetChanged();
     }
     public void setstate(PlaybackStateCompat stateCompat){
         if(stateCompat!=null) {
@@ -802,6 +1031,8 @@ public class Now_playing extends AppCompatActivity implements recycler_adapter.a
             Log.i("mjkl", "setstate state is null");
             seticon(false);
         }
+        adapter.notifyDataSetChanged();
+
     }
 
     public void updateseekbarAsync() {

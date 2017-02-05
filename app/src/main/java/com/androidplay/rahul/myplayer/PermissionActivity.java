@@ -19,13 +19,14 @@ public class PermissionActivity extends AppCompatActivity {
     FragmentManager fragmentManager;
     FragmentTransaction fragmentTransaction;
     Fragment launch;
+    ApplicationController con;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.i("llllp","permission on create");
 
 
         super.onCreate(savedInstanceState);
-
+        con=new ApplicationController(this.getApplicationContext(),this);
 
          launch = new launcher();
         fragmentManager = getFragmentManager();
@@ -34,7 +35,8 @@ public class PermissionActivity extends AppCompatActivity {
         fragmentTransaction.commit();
 
         if (ContextCompat.checkSelfPermission(PermissionActivity.this,
-                Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED){
+
 
              ///replace fragment
                 Fragment perm = new askPermission();
@@ -64,27 +66,35 @@ public class PermissionActivity extends AppCompatActivity {
            t1.start();
         }
     }
-        @Override
-        public void onRequestPermissionsResult ( int requestCode,
-        String permissions[],int[] grantResults){
-            switch (requestCode) {
-                case read_external: {
-                    // If request is cancelled, the result arrays are empty.
-                    if (grantResults.length > 0
-                            && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
-                        // permission was granted,
-                        startact();
-                    } else {
-                        // permission denied,
+    @Override
+    public void onRequestPermissionsResult ( int requestCode,
+    String permissions[],int[] grantResults){
+        switch (requestCode) {
+            case read_external: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED
+                        ) {
+
+                    if(con.musicSrv==null){
+                        con.setservice();
                     }
-                    return;
-                }
 
-                // other 'case' lines to check for other
-                // permissions this app might request
+                    // permission was granted,
+                    ApplicationController.readlistfrommemory();
+                    ApplicationController.restoresongvalue();
+                    startact();
+                } else {
+                    // permission denied,
+                }
+                return;
             }
+
+            // other 'case' lines to check for other
+            // permissions this app might request
         }
+    }
 
 
     public void startact() {

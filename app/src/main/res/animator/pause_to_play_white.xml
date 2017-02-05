@@ -5,7 +5,7 @@
 
     android:propertyName="pathData"
 
-    android:valueFrom="@string/svg_pause"
+    android:valueFrom="@string/svg_pause_white"
 
     android:valueTo="@string/svg_triangle_white"
 

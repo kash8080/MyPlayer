@@ -53,7 +53,13 @@
         <item name="actionModeBackground">@color/colorPrimaryLightbrown</item>
 
     </style>
+    <style name="AppTheme.night">
+        <item name="colorPrimary">@color/colorPrimarynight</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDarknight</item>
+        <item name="colorAccent">@color/colorAccentnight</item>
+        <item name="actionModeBackground">@color/colorPrimaryLightnight</item>
 
+    </style>
     <style name="MyCustomTabLayout" parent="Widget.Design.TabLayout">
 
         <item name="tabIndicatorColor">?attr/colorAccent</item>

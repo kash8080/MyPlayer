@@ -1,5 +1,6 @@
 package com.androidplay.rahul.myplayer;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
@@ -32,6 +33,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.squareup.picasso.Picasso;
 
@@ -48,9 +50,10 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
     updateseekbar1 seekbarasync;
     songs current_song;
     Long setmax=0L;
-    public boolean isrepeat,isshuffle;
+    public boolean isshuffle;
     String Current_time;
     public int viewupdater=0;
+    int isrepeat=0;
     View back_colour;
     LinearLayout gradient_back;
     MediaControllerCompat controllerCompat;
@@ -78,10 +81,10 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        con=new ApplicationController();
+        con=new ApplicationController(this.getApplicationContext(),this);
 
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
-        String thme=sharedPref.getString("THEME_LIST","1") ;
+        final String thme=sharedPref.getString("THEME_LIST","1") ;
         switch (thme){
             case "1":setTheme(R.style.AppTheme);break;
             case "2":setTheme(R.style.AppTheme_Purple);break;
@@ -103,9 +106,10 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
                 super.onCreate(new Bundle());
                 //activity trying to restore previous state which is null
                 // now because the system terminates the rocess while revoking perissions
-                startActivity(new Intent(this, MainActivity.class));
+                startActivity(new Intent(this, PermissionActivity.class));
                 //finish called to stop further proccess of this activity
                 finish();
+                return;
             }else{
                 super.onCreate(savedInstanceState);
             }
@@ -116,7 +120,19 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
 
         initialise();
 
-
+        image.setOnTouchListener(new OnSwipeTouchListener(this) {
+            @Override
+            public void onSwipeLeft() {
+                seekBar.setProgress(0);
+                con.playnext();
+                seekBar.setProgress(0);
+            }
+            public void onSwipeRight() {
+                seekBar.setProgress(0);
+                con.playprev();
+                seekBar.setProgress(0);
+            }
+        });
         //-----------kk-k--k
         connectControllerToSession(con.getMediaSessionToken());
 
@@ -426,15 +442,21 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
             case R.id.repeat :{
 
                 Log.i("mmmm","repeat");
-                if(isrepeat){
-                    isrepeat=false;
-                    con.setRepeat(false);
+                isrepeat=con.isRepeat();
+                if(isrepeat==0){
+                    isrepeat=1;
+                    con.setRepeat(1);
+                    setrepeatbutton(true);
+                }else if(isrepeat==1){
+                    isrepeat=2;
+                    con.setRepeat(2);
                     setrepeatbutton(true);
                 }else{
-                    isrepeat=true;
-                    con.setRepeat(true);
+                    isrepeat=0;
+                    con.setRepeat(0);
                     setrepeatbutton(true);
                 }
+
                 return;
             }
             case R.id.shuffle :{
@@ -546,11 +568,15 @@ public class playerr extends AppCompatActivity implements View.OnClickListener,S
     }
 
     public void setrepeatbutton(boolean animation){
-        if(isrepeat){
+        isrepeat=con.isRepeat();
+        if(isrepeat==0){
+            repeat.setImageResource(R.drawable.repeat);
+        }else if(isrepeat==1){
             repeat.setImageResource(R.drawable.repeat_selected);
         }else{
-            repeat.setImageResource(R.drawable.repeat);
+            repeat.setImageResource(R.drawable.repeat_one);
         }
+
         if(animation) {
             repeat.animate().scaleX(1.25f).scaleY(1.25f).setDuration(0).withEndAction(new Runnable() {
                 @Override

@@ -2,13 +2,14 @@
 <animated-vector
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:drawable="@drawable/pause"
+
     >
     <target
         android:name="avd_pause"
         android:animation="@animator/pause_to_play" />
-
+<!--
     <target
         android:name="pause_group"
         android:animation="@animator/rotate" />
-
+-->
 </animated-vector>

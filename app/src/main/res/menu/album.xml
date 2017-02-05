@@ -7,7 +7,10 @@
     <item android:title="Play"
         android:id="@+id/album_playall">
     </item>
-    <item android:title="More from artist"
+    <item android:title="Add to Playlist"
+        android:id="@+id/Album_addToPlaylist">
+    </item>
+    <item android:title="Go to artist"
         android:id="@+id/album_morefromartist">
     </item>
     <item android:title="Delete"

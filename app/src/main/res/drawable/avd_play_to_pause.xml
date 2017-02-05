@@ -6,8 +6,9 @@
     <target
         android:name="avd_play"
         android:animation="@animator/play_to_pause" />
-
+<!--
     <target
         android:name="play_group"
         android:animation="@animator/rotate_rev" />
+-->
 </animated-vector>

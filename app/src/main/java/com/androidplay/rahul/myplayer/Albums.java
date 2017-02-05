@@ -1,6 +1,9 @@
 package com.androidplay.rahul.myplayer;
 
+import android.app.AlertDialog;
 import android.content.ContentResolver;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.res.Configuration;
 import android.database.Cursor;
 import android.net.Uri;
@@ -9,6 +12,8 @@ import android.provider.MediaStore;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.view.ActionMode;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -22,18 +27,23 @@ import java.util.ArrayList;
 
 import xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScroller;
 
-public class Albums extends Fragment {
+public class Albums extends Fragment implements Toolbar_ActionMode_Callback.album_interface{
 
     String tag="alb";
     RecyclerView rec_view;
     recycler_adapter rec_adapter;
-    ArrayList<songs> list ;
+    ArrayList<songs> list=new ArrayList<>() ;
     private RecyclerView.LayoutManager mLayoutManager;
     ContentResolver res;
     int columncount=2;
     ApplicationController con;
     boolean hassavedlist=false;
     boolean cancelled=false;
+
+    //actionmode
+    public ActionMode mActionMode;
+    public boolean canremoveSelection=true;
+    AlertDialog.Builder builder;
 
     @Nullable
     @Override
@@ -76,6 +86,8 @@ public class Albums extends Fragment {
 
         rec_view.setLayoutManager(mLayoutManager);
         rec_view.setAdapter(rec_adapter);
+
+        implementRecyclerViewListeners();
 
         Log.i("cccc","on create album");
         return v;
@@ -133,22 +145,6 @@ public class Albums extends Fragment {
         Log.i("album","setlist done");
     }
 
-    @Override
-    public void onSaveInstanceState(Bundle outState) {
-        Log.i("album","onsaveinstance");
-        /*
-        if(list!=null && list.size()>0 && loaded) {
-            Log.i("album","saved list in controller");
-
-            outState.putString("instancesaved", "true");
-            con.albumslist=list;
-        }else{
-            outState.putString("instancesaved", "false");
-            con.albumslist=null;
-        }
-        */
-        super.onSaveInstanceState(outState);
-    }
     boolean loaded=false;
     public class doasync extends AsyncTask<Void,Void,Void> {
 
@@ -168,4 +164,125 @@ public class Albums extends Fragment {
             }
         }
     }
+
+
+    MainActivity mainact;
+    @Override
+    public void onAttach(Context context) {
+        mainact=(MainActivity)context;
+        super.onAttach(context);
+    }
+
+
+    //action mode methods
+    public void implementRecyclerViewListeners(){
+        rec_view.addOnItemTouchListener(new RecyclerTouchListener(getActivity(), rec_view, new RecyclerClick_Listener() {
+            @Override
+            public void onClick(View view, int position) {
+                //Log.i("contxt","home recycler listener on single tap");
+                //If ActionMode not null select item
+                Log.i("clickedd","home on click");
+
+                if (mActionMode != null)
+                    onListItemSelect(position);
+            }
+
+            @Override
+            public void onLongClick(View view, int position) {
+                //Log.i("contxt","home recycler listener on long tap");
+                Log.i("clickedd","home on long click");
+
+                //Select item on long click
+                onListItemSelect(position);
+            }
+        }));
+    }
+    //List item select method
+    private void onListItemSelect(int position) {
+        rec_adapter.toggleSelection(position);//Toggle the selection
+
+        boolean hasCheckedItems = rec_adapter.getSelectedCount() > 0;//Check if any items are already selected or not
+
+        if (hasCheckedItems && mActionMode == null){
+            // there are some selected items, start the actionMode
+            mActionMode = ((AppCompatActivity) getActivity()).startSupportActionMode(
+                    new Toolbar_ActionMode_Callback(this,"album"));
+
+            mainact.lockdrawer();
+            rec_adapter.mActionmodeset(true);
+
+        }else if (!hasCheckedItems && mActionMode != null)
+
+            // there no selected items, finish the actionMode
+            mActionMode.finish();
+        if (mActionMode != null)
+            //set action mode title on item selection
+            mActionMode.setTitle(String.valueOf(rec_adapter.getSelectedCount()) + " selected");
+    }
+    //Set action mode null after use
+    @Override
+    public void setNullToActionMode() {
+        if (mActionMode != null) {
+            Log.i("animt","null to action mode");
+
+            mActionMode = null;
+            mainact.releasedrawer();
+            removeSelection();
+            rec_adapter.mActionmodeset(false);
+        }
+    }
+    @Override
+    public void removeSelection(){
+        if(canremoveSelection){
+            rec_adapter.removeSelection();
+        }
+    }
+    @Override
+    public void context_delete(){
+        Log.i("ationmode","album delete");
+        builder=new AlertDialog.Builder(getActivity());
+        builder.setMessage("are you sure you want to delete "+String.valueOf(rec_adapter.getSelectedCount())+" selected songs");
+        builder.setCancelable(false) ;
+        builder.setPositiveButton(
+                "yes",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        canremoveSelection=true;
+                        rec_adapter.context_albumdelete();
+                        removeSelection();
+                    }
+                });
+
+        builder.setNegativeButton(
+                "no",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        dialog.cancel();
+                        canremoveSelection=true;
+                        removeSelection();
+                        if(mActionMode!=null) {
+                            mActionMode.finish();
+                        }
+                    }
+                });
+
+        AlertDialog alert = builder.create();
+        alert.show();
+    }
+    @Override
+    public void context_addtoPlaylist(){
+        Log.i("ationmode","album delete");
+       rec_adapter.album_addtoplaylist_contextual();
+    }
+
+    @Override
+    public void canremoveSelection(boolean g) {
+        canremoveSelection=g;
+    }
+    @Override
+    public void context_addtoqueue(){
+        Log.i("ationmode","album delete");
+        rec_adapter.album_addtoqueue_contextual();
+    }
+
 }

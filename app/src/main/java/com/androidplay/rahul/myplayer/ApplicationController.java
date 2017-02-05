@@ -51,12 +51,13 @@ public class ApplicationController extends Application {
     public static String currenntlistof="" ;
     public static boolean withimages=false;
     private static ApplicationController thiscontext;
-    private static playerservice musicSrv;
-    public static ArrayList<songs> allsonglist ;
+    public static playerservice musicSrv;
+    public static ArrayList<songs> allsonglist=new ArrayList<>() ;
+    public boolean playlistfragmentchanged=false;
 
     //to restore list
-    public static ArrayList<songs> currentactivitySavedList;
-    public static ArrayList<String> currentactivityalbumartlist;
+    public static ArrayList<songs> currentactivitySavedList=new ArrayList<>();
+    public static ArrayList<String> currentactivityalbumartlist=new ArrayList<>();
 
     private static ContentResolver resolver;
     background loadimagesforallsongs;
@@ -72,17 +73,24 @@ public class ApplicationController extends Application {
 
         this.applicationcontext = Activitycontext.getApplicationContext();
         this.activitycontext = Activitycontext;
-
+        if(playIntent==null) {
+            setservice();
+        }
         if (musicSrv != null) {
-            musicSrv.setcontext(applicationcontext);
+            musicSrv.setcontext(activitycontext);
         }
     }
 
     public MediaSessionCompat.Token getMediaSessionToken(){
         if (musicSrv != null) {
             return musicSrv.msession.getSessionToken();
+        }else{
+            //music service setup start
+            try {
+                setservice();
+            }catch (Exception e){}
         }
-        else return null;
+        return null;
     }
     @Override
     public void onCreate() {
@@ -94,10 +102,7 @@ public class ApplicationController extends Application {
 
         //music service setup start
         if(playIntent==null) {
-            playIntent = new Intent(this, playerservice.class);
-            Log.i("qwsd", "con try");
-            startService(playIntent);
-            bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE);
+           setservice();
         }
         //music service setup end
 
@@ -106,20 +111,32 @@ public class ApplicationController extends Application {
         Log.i("llllp","con on create end");
 
     }
-
+    public void setservice(){
+        playIntent = new Intent(this, playerservice.class);
+        Log.i("qwsd", "con try");
+        startService(playIntent);
+        bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE);
+    }
     // when user kills the task with swiping from recent tasks
     @Override
     public void onTerminate() {
         Log.i("qwsd","con onterminate");
+        if(musicSrv!=null){
+            musicSrv.savecurrentsonginfo();
+            musicSrv.savelistToMemory();
+        }
         super.onTerminate();
         loadimagesforallsongs.cancel(true);
     }
+
 
     ///for connectiong to the service
     public static   ServiceConnection musicConnection = new ServiceConnection(){
 
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
+            Log.i("qwsd","con service binded");
+
             playerservice.MusicBinder binder = (playerservice.MusicBinder)service;
             //get service
             musicSrv = binder.getService();
@@ -155,7 +172,7 @@ public class ApplicationController extends Application {
             loadimagesforallsongs.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         }
     }
-    public boolean needforpermissions(String permission){
+    public static boolean needforpermissions(String permission){
 
         if(Build.VERSION.SDK_INT>Build.VERSION_CODES.LOLLIPOP_MR1){
             Log.i("llllp","sdk1");
@@ -323,8 +340,11 @@ public class ApplicationController extends Application {
         return  musicSrv.getcurrentplaybacktime();
     }
     public static ArrayList<songs> getlist() {
-
-        return musicSrv.getlist();
+        if(musicSrv!=null && musicSrv.getlist()!=null) {
+            return musicSrv.getlist();
+        }else{
+            return new ArrayList<>();
+        }
     }
     public static void notifydatachange(int id, int from , int to){
 
@@ -337,10 +357,10 @@ public class ApplicationController extends Application {
 
         return musicSrv.isnull();
     }
-    public static boolean isRepeat() {
+    public static int isRepeat() {
         return musicSrv.isRepeat();
     }
-    public void setRepeat(boolean repeat) {
+    public void setRepeat(int repeat) {
         musicSrv.setRepeat(repeat);
 
     }
@@ -363,66 +383,126 @@ public class ApplicationController extends Application {
         }
         return new songs(0L,"","");
     }
-
+    public static void restoresongvalue(){
+        if(musicSrv!=null){
+            musicSrv.restoreCurrentSongValue();
+        }
+    }
+    public static void readlistfrommemory(){
+        if(musicSrv!=null){
+            musicSrv.readlistfromMemory();
+        }
+    }
     public int getPrimary(){
 
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(activitycontext);
         String thme=sharedPref.getString("THEME_LIST","1") ;
-        switch (thme){
-            case "1":return ContextCompat.getColor(activitycontext,R.color.colorPrimary);
-            case "2":return ContextCompat.getColor(activitycontext,R.color.colorPrimarypurple);
-            case "3":return ContextCompat.getColor(activitycontext,R.color.colorPrimaryred);
-            case "4":return ContextCompat.getColor(activitycontext,R.color.colorPrimaryorange);
-            case "5":return ContextCompat.getColor(activitycontext,R.color.colorPrimaryindigo);
-            case "6":return ContextCompat.getColor(activitycontext,R.color.colorPrimarybrown);
-            default:return ContextCompat.getColor(activitycontext,R.color.colorPrimary);
+        Boolean night = sharedPref.getBoolean("check", false);
+        if(night){
+            return ContextCompat.getColor(activitycontext, R.color.colorPrimarynight);
+        }else {
+            switch (thme) {
+                case "1":
+                    return ContextCompat.getColor(activitycontext, R.color.colorPrimary);
+                case "2":
+                    return ContextCompat.getColor(activitycontext, R.color.colorPrimarypurple);
+                case "3":
+                    return ContextCompat.getColor(activitycontext, R.color.colorPrimaryred);
+                case "4":
+                    return ContextCompat.getColor(activitycontext, R.color.colorPrimaryorange);
+                case "5":
+                    return ContextCompat.getColor(activitycontext, R.color.colorPrimaryindigo);
+                case "6":
+                    return ContextCompat.getColor(activitycontext, R.color.colorPrimarybrown);
+                default:
+                    return ContextCompat.getColor(activitycontext, R.color.colorPrimary);
+            }
         }
-
     }
     public int getPrimaryDark(){
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(activitycontext);
         String thme=sharedPref.getString("THEME_LIST","1") ;
-        switch (thme){
-            case "1":return ContextCompat.getColor(activitycontext,R.color.colorPrimaryDark);
-            case "2":return ContextCompat.getColor(activitycontext,R.color.colorPrimaryDarkpurple);
-            case "3":return ContextCompat.getColor(activitycontext,R.color.colorPrimaryDarkred);
-            case "4":return ContextCompat.getColor(activitycontext,R.color.colorPrimaryDarkorange);
-            case "5":return ContextCompat.getColor(activitycontext,R.color.colorPrimaryDarkindigo);
-            case "6":return ContextCompat.getColor(activitycontext,R.color.colorPrimaryDarkbrown);
-            default:return ContextCompat.getColor(activitycontext,R.color.colorPrimaryDark);
+        Boolean night = sharedPref.getBoolean("check", false);
+        if(night){
+            return ContextCompat.getColor(activitycontext, R.color.colorPrimaryDarknight);
+        }else {
+            switch (thme) {
+                case "1":
+                    return ContextCompat.getColor(activitycontext, R.color.colorPrimaryDark);
+                case "2":
+                    return ContextCompat.getColor(activitycontext, R.color.colorPrimaryDarkpurple);
+                case "3":
+                    return ContextCompat.getColor(activitycontext, R.color.colorPrimaryDarkred);
+                case "4":
+                    return ContextCompat.getColor(activitycontext, R.color.colorPrimaryDarkorange);
+                case "5":
+                    return ContextCompat.getColor(activitycontext, R.color.colorPrimaryDarkindigo);
+                case "6":
+                    return ContextCompat.getColor(activitycontext, R.color.colorPrimaryDarkbrown);
+                default:
+                    return ContextCompat.getColor(activitycontext, R.color.colorPrimaryDark);
+            }
         }
     }
     public int getAccent(){
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(activitycontext);
         String thme=sharedPref.getString("THEME_LIST","1") ;
-        switch (thme){
-            case "1":return ContextCompat.getColor(activitycontext,R.color.colorAccent);
-            case "2":return ContextCompat.getColor(activitycontext,R.color.colorAccentpurple);
-            case "3":return ContextCompat.getColor(activitycontext,R.color.colorAccentred);
-            case "4":return ContextCompat.getColor(activitycontext,R.color.colorAccentorange);
-            case "5":return ContextCompat.getColor(activitycontext,R.color.colorAccentindigo);
-            case "6":return ContextCompat.getColor(activitycontext,R.color.colorAccentbrown);
-            default:return ContextCompat.getColor(activitycontext,R.color.colorAccent);
+        Boolean night = sharedPref.getBoolean("check", false);
+        if(night){
+            return ContextCompat.getColor(activitycontext, R.color.colorAccentnight);
+        }else {
+            switch (thme) {
+                case "1":
+                    return ContextCompat.getColor(activitycontext, R.color.colorAccent);
+                case "2":
+                    return ContextCompat.getColor(activitycontext, R.color.colorAccentpurple);
+                case "3":
+                    return ContextCompat.getColor(activitycontext, R.color.colorAccentred);
+                case "4":
+                    return ContextCompat.getColor(activitycontext, R.color.colorAccentorange);
+                case "5":
+                    return ContextCompat.getColor(activitycontext, R.color.colorAccentindigo);
+                case "6":
+                    return ContextCompat.getColor(activitycontext, R.color.colorAccentbrown);
+                default:
+                    return ContextCompat.getColor(activitycontext, R.color.colorAccent);
+            }
         }
     }
     public int getPrimaryLight(){
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(activitycontext);
         String thme=sharedPref.getString("THEME_LIST","1") ;
-        switch (thme){
-            case "1":return ContextCompat.getColor(activitycontext,R.color.colorPrimaryLight);
-            case "2":return ContextCompat.getColor(activitycontext,R.color.colorPrimaryLightpurple);
-            case "3":return ContextCompat.getColor(activitycontext,R.color.colorPrimaryLightred);
-            case "4":return ContextCompat.getColor(activitycontext,R.color.colorPrimaryLightorange);
-            case "5":return ContextCompat.getColor(activitycontext,R.color.colorPrimaryLightindigo);
-            case "6":return ContextCompat.getColor(activitycontext,R.color.colorPrimaryLightbrown);
-            default:return ContextCompat.getColor(activitycontext,R.color.colorPrimaryLight);
+        Boolean night = sharedPref.getBoolean("check", false);
+        if(night){
+            return ContextCompat.getColor(activitycontext, R.color.colorPrimaryLightnight);
+        }else {
+            switch (thme) {
+                case "1":
+                    return ContextCompat.getColor(activitycontext, R.color.colorPrimaryLight);
+                case "2":
+                    return ContextCompat.getColor(activitycontext, R.color.colorPrimaryLightpurple);
+                case "3":
+                    return ContextCompat.getColor(activitycontext, R.color.colorPrimaryLightred);
+                case "4":
+                    return ContextCompat.getColor(activitycontext, R.color.colorPrimaryLightorange);
+                case "5":
+                    return ContextCompat.getColor(activitycontext, R.color.colorPrimaryLightindigo);
+                case "6":
+                    return ContextCompat.getColor(activitycontext, R.color.colorPrimaryLightbrown);
+                default:
+                    return ContextCompat.getColor(activitycontext, R.color.colorPrimaryLight);
+            }
         }
     }
 
 
     //functions for list of all songs
     public static ArrayList<songs> getAllsonglist() {
-        return allsonglist;
+        if(allsonglist!=null) {
+            return allsonglist;
+        }else{
+            return new ArrayList<>();
+        }
     }
     public static void setAllsonglist(ArrayList<songs> allsonglist) {
         ApplicationController.allsonglist = allsonglist;
@@ -437,7 +517,8 @@ public class ApplicationController extends Application {
         allsonglist=new ArrayList<>();
         Log.i("llllp","fetch list");
         String[] proj={android.provider.MediaStore.Audio.Media.TITLE,
-                MediaStore.Audio.Media.ALBUM_ID,MediaStore.Audio.Media._ID,
+                MediaStore.Audio.Media.ALBUM_ID,
+                MediaStore.Audio.Media._ID,
                 android.provider.MediaStore.Audio.Media.ARTIST,
                 MediaStore.Audio.Media.DATA,
                 };
@@ -553,6 +634,13 @@ public class ApplicationController extends Application {
             super.onPostExecute(songses);
 
         }
+    }
+
+    public ArrayList<String> getPresetList(){
+        return musicSrv.getPresetList();
+    }
+    public void setPresetList(int i){
+        musicSrv.setPresetList(i);
     }
 
 }

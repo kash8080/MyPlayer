@@ -1,16 +1,17 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="32dp"
-    android:height="32dp"
-    android:viewportWidth="26.0"
-    android:viewportHeight="26.0">
+    android:width="36dp"
+    android:height="36dp"
+    android:viewportWidth="24.0"
+    android:viewportHeight="24.0">
 
-    <group android:name="play_group_white"
-        android:pivotX="13"
-        android:pivotY="13"
-        >
-        <path
-            android:name="avd_play_white"
-            android:fillColor="#ffffff"
-            android:pathData="M8,2 L8,26 26,14 8,2 M18,0 L18,0 18,0 18,0"/>
-    </group>
+    <!--<path
+        android:fillColor="#FF000000"
+        android:pathData="M12,12m-10,0a10,10 0,1 1,20 0a10,10 0,1 1,-20 0"/>
+        -->
+    <path
+        android:name="avd_play_white"
+        android:fillColor="#ffffff"
+        android:pathData="M8,2 L8,22 14,17 14,7 M14,7 L14,17 20,12 20,12"/>
+
+    <!--M7,2 L7,26 16.5,20 16.5,8 M16.5,8 L16.5,20 26,14 26,14-->
 </vector>

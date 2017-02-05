@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        >
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:layout_gravity="center"
+            android:orientation="horizontal"
+            >
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="#ffffff"
+                >
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:id="@+id/first"
+                    android:src="@drawable/noimage"
+                    android:layout_height="match_parent" />
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:padding="60dp"
+                    android:background="#3300BCD4"
+                    android:id="@+id/i1s"
+                    android:src="@drawable/check_circle"
+                    android:layout_height="match_parent" />
+            </FrameLayout>
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="#ffffff"
+                >
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:scaleType="centerCrop"
+                    android:id="@+id/second"
+                    android:layout_height="match_parent" />
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:padding="60dp"
+                    android:background="#3300BCD4"
+                    android:id="@+id/i2s"
+
+                    android:src="@drawable/check_circle"
+                    android:layout_height="match_parent" />
+            </FrameLayout>
+
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:layout_gravity="center"
+            android:orientation="horizontal"
+            >
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="#ffffff"
+                >
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:id="@+id/third"
+                    android:scaleType="centerCrop"
+                    android:layout_weight="1"
+
+                    android:layout_height="match_parent" />
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:padding="60dp"
+                    android:background="#3300BCD4"
+                    android:id="@+id/i3s"
+
+                    android:src="@drawable/check_circle"
+                    android:layout_height="match_parent" />
+            </FrameLayout>
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="#ffffff"
+                >
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:id="@+id/fourth"
+                    android:scaleType="centerCrop"
+                    android:layout_height="match_parent" />
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:padding="60dp"
+                    android:background="#3300BCD4"
+                    android:id="@+id/i4s"
+
+                    android:src="@drawable/check_circle"
+                    android:layout_height="match_parent" />
+            </FrameLayout>
+
+
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:layout_gravity="center"
+            android:orientation="horizontal"
+            >
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="#ffffff"
+                >
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:id="@+id/fifth"
+                    android:scaleType="centerCrop"
+                    android:layout_weight="1"
+
+                    android:layout_height="match_parent" />
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:padding="60dp"
+                    android:background="#3300BCD4"
+                    android:id="@+id/i5s"
+
+                    android:src="@drawable/check_circle"
+                    android:layout_height="match_parent" />
+            </FrameLayout>
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="#ffffff"
+                >
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:id="@+id/sixth"
+                    android:scaleType="centerCrop"
+                    android:layout_height="match_parent" />
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:padding="60dp"
+                    android:background="#3300BCD4"
+                    android:id="@+id/i6s"
+
+                    android:src="@drawable/check_circle"
+                    android:layout_height="match_parent" />
+            </FrameLayout>
+
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</ScrollView>

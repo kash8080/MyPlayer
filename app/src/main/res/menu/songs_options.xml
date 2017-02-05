@@ -16,11 +16,11 @@
         android:id="@+id/psongs_add_to_playlist"
         >
     </item>
-    <item android:title="More from Artist"
+    <item android:title="Go to Artist"
         android:id="@+id/psongs_moreFromArtist"
         >
     </item>
-    <item android:title="Open Album"
+    <item android:title="Go to Album"
         android:id="@+id/psongs_OpenAlbum"
         >
     </item>

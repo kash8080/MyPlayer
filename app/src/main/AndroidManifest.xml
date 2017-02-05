@@ -7,34 +7,37 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.CHANGE_CONFIGURATION" />
+    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
 
     <application
-        android:name="com.androidplay.rahul.myplayer.ApplicationController"
+        android:name=".ApplicationController"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
+        android:largeHeap="true"
         android:theme="@style/AppTheme">
-
-        <activity
-            android:name="com.androidplay.rahul.myplayer.MainActivity"
-            >
+        <activity android:name=".MainActivity">
             <meta-data
                 android:name="android.app.default_searchable"
                 android:value=".SearchableActivity" />
             />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
         </activity>
-
         <activity
-            android:name="com.androidplay.rahul.myplayer.open_playlist"
+            android:name=".open_playlist"
             android:theme="@style/AppTheme" />
         <activity
-            android:name="com.androidplay.rahul.myplayer.ChooseArtistAlbum"
+            android:name=".ChooseArtistAlbum"
             android:theme="@style/AppTheme" />
-
         <activity
-            android:name="com.androidplay.rahul.myplayer.playerr"
-            android:parentActivityName="com.androidplay.rahul.myplayer.MainActivity"
+            android:name=".playerr"
+            android:parentActivityName=".MainActivity"
             android:theme="@style/AppTheme">
             <intent-filter>
                 <action android:name="android.intent.action.second_activity" />
@@ -42,14 +45,10 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
-
         <activity
-            android:name="com.androidplay.rahul.myplayer.Now_playing"
+            android:name=".Now_playing"
             android:theme="@style/AppTheme" />
 
-        <meta-data
-            android:name="com.facebook.sdk.ApplicationId"
-            android:value="@string/facebook_app_id" />
 
         <receiver android:name="android.support.v4.media.session.MediaButtonReceiver">
             <intent-filter>
@@ -58,7 +57,7 @@
         </receiver>
 
         <service
-            android:name="com.androidplay.rahul.myplayer.playerservice"
+            android:name=".playerservice"
             android:exported="false"
             android:stopWithTask="false">
             <intent-filter>
@@ -66,45 +65,37 @@
             </intent-filter>
         </service>
 
-
         <activity
-            android:name="com.androidplay.rahul.myplayer.settings"
+            android:name=".settings"
+            android:theme="@style/AppTheme"></activity>
+        <activity
+            android:name=".PermissionActivity"
+            android:label="@string/app_name"
             android:theme="@style/AppTheme">
-        </activity>
-
-        <activity
-            android:name="com.androidplay.rahul.myplayer.PermissionActivity"
-            android:theme="@style/AppTheme"
-            android:label="@string/app_name">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
             <intent-filter>
                 <action android:name="com.rahul.permission" />
 
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
-
-        <activity android:name="com.androidplay.rahul.myplayer.SearchableActivity"
-            android:theme="@style/AppTheme"
+        <activity
+            android:name=".SearchableActivity"
             android:launchMode="singleTop"
-            >
+            android:theme="@style/AppTheme">
             <intent-filter>
                 <action android:name="android.intent.action.SEARCH" />
             </intent-filter>
+
             <meta-data
                 android:name="android.app.searchable"
-                android:resource="@xml/searchable"/>
-
+                android:resource="@xml/searchable" />
         </activity>
 
         <provider
-            android:name="com.androidplay.rahul.myplayer.MySuggestionProvider"
+            android:name=".MySuggestionProvider"
             android:authorities="com.androidplay.rahul.myplayer.MySuggestionProvider" />
 
+        <activity android:name=".Equaliser"></activity>
     </application>
 
 </manifest>

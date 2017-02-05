@@ -3,16 +3,20 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="4dp"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context="com.androidplay.rahul.myplayer.Albums">
-
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:alpha=".5"
+        android:scaleType="centerCrop"
+        />
     <android.support.v7.widget.RecyclerView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginEnd="10dp"
-        android:background="@color/colorWhite"
+        android:layout_marginEnd="20dp"
         android:id="@+id/recview_albums"
-        android:layout_marginRight="10dp">
+        android:layout_marginRight="20dp">
 
     </android.support.v7.widget.RecyclerView>
 
@@ -21,5 +25,6 @@
         android:layout_width="20dp"
         android:layout_height="match_parent"
         android:layout_alignParentEnd="true"
+        app:rfs_handleColor="#00BCD4"
         android:layout_alignParentRight="true" />
 </RelativeLayout>

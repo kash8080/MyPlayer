@@ -23,13 +23,13 @@ import xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScrol
 
 //import com.example.rahul.myplayer.MyService.MusicBinder;
 
-public class home extends Fragment{
+public class home extends Fragment implements Toolbar_ActionMode_Callback.home_interface{
     public boolean canremoveSelection=true;
     String tag="tstnn";
     ApplicationController con;
     RecyclerView rec_view;
     recycler_adapter rec_adapter;
-    ArrayList<songs> list ;
+    ArrayList<songs> list=new ArrayList<>() ;
     private RecyclerView.LayoutManager mLayoutManager;
     private boolean paused=true;
     ContentResolver musicResolver;
@@ -57,7 +57,6 @@ public class home extends Fragment{
 
         // Connect the recycler to the scroller (to let the scroller scroll the list)
         fastScroller.setRecyclerView(rec_view);
-
         // Connect the scroller to the recycler (to let the recycler scroll the scroller's handle)
         rec_view.addOnScrollListener(fastScroller.getOnScrollListener());
 
@@ -122,7 +121,7 @@ public class home extends Fragment{
         if (hasCheckedItems && mActionMode == null){
             // there are some selected items, start the actionMode
             mActionMode = ((AppCompatActivity) getActivity()).startSupportActionMode(
-                    new Toolbar_ActionMode_Callback(getActivity(),rec_adapter,con.getAllsonglist()));
+                    new Toolbar_ActionMode_Callback(this,"home"));
 
             mainact.lockdrawer();
             rec_adapter.mActionmodeset(true);
@@ -144,6 +143,8 @@ public class home extends Fragment{
             mActionMode.setTitle(String.valueOf(rec_adapter.getSelectedCount()) + " selected");
         }
     //Set action mode null after use
+
+    @Override
     public void setNullToActionMode() {
         if (mActionMode != null) {
             Log.i("animt","null to action mode");
@@ -161,14 +162,17 @@ public class home extends Fragment{
         }
         }
 
+    @Override
     public void addtoplaylist_contextual(){
         Log.i("contxt1","add to playlist");
         rec_adapter.addtoplaylist_contextual();
     }
+    @Override
     public void addtoqueue_contextual(){
         Log.i("contxt1","add to queue");
         rec_adapter.addtoqueue_contextual();
     }
+    @Override
     public void delete_contextual(){
         Log.i("contxt1","delete");
         builder=new AlertDialog.Builder(getActivity());
@@ -200,13 +204,19 @@ public class home extends Fragment{
         AlertDialog alert = builder.create();
         alert.show();
     }
+    @Override
     public void share_contextual(){
         rec_adapter.share_contextual();
     }
 
+    @Override
     public void removeSelection(){
         if(canremoveSelection){
             rec_adapter.removeSelection();
         }
+    }
+    @Override
+    public void canremoveSelection(boolean g) {
+        canremoveSelection=g;
     }
 }

@@ -3,13 +3,18 @@ package com.androidplay.rahul.myplayer;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.TypedArray;
 import android.os.Build;
+import android.os.Parcel;
+import android.os.Parcelable;
+import android.preference.DialogPreference;
 import android.preference.Preference;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
+import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MenuItem;
 
@@ -42,7 +47,7 @@ public class settings extends AppCompatActivity {
         }else{
             if(con.needforpermissions(android.Manifest.permission.READ_EXTERNAL_STORAGE)) {
                 super.onCreate(new Bundle());
-                startActivity(new Intent(this, MainActivity.class));
+                startActivity(new Intent(this, PermissionActivity.class));
             }else{
                 super.onCreate(savedInstanceState);
             }
@@ -75,6 +80,7 @@ public class settings extends AppCompatActivity {
             // Load the preferences from an XML resource
             addPreferencesFromResource(R.xml.settings);
 
+
             // to set summery before loading as per the current value and not the default one
             Preference connectionPref = findPreference("check");
 
@@ -82,32 +88,43 @@ public class settings extends AppCompatActivity {
             SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
             PreferenceManager.setDefaultValues(context,R.xml.settings,false);
             if(sharedPref.getBoolean("check",false)) {
-                connectionPref.setSummary("click to disable push notifications");
+                connectionPref.setSummary("click to disable Night mode");
             } else {
-                connectionPref.setSummary("click to enable push notifications");
+                connectionPref.setSummary("click to enable Night mode");
             }
+            int img=sharedPref.getInt("image_chooser",0);
+            Log.i("settn","current value="+img);
+
         }
 
         @Override
         public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
             Log.i("sttng","main pref changed");
-            if (key.equals("check")) {
+           if (key.equals("check")) {
                 Preference connectionPref = findPreference("check");
                         // Set summary to be the user-description for the selected value
-                if(sharedPreferences.getBoolean(key,false)) {
-                    //connectionPref.setSummary(String.valueOf(sharedPreferences.getBoolean(key, false)));
-                    connectionPref.setSummary("click to disable push notifications");
-                } else {
-                    connectionPref.setSummary("click to enable push notifications");
-                }
-
+               if(sharedPreferences.getBoolean("check",false)) {
+                   connectionPref.setSummary("click to disable Night mode");
+               } else {
+                   connectionPref.setSummary("click to enable Night mode");
+               }
             }else if (key.equals("THEME_LIST")) {
                 ((settings)context).toolbar.setBackgroundColor(((settings)context).con.getPrimary());
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                     ((settings)context).getWindow().setStatusBarColor((((settings)context).con.getPrimaryDark()));
                 }
 
-            }
+            }else if (key.equals("image_chooser")) {
+               Log.i("settn","images changed");
+
+               int no=sharedPreferences.getInt("image_chooser",0);
+               if(no>=1) {
+                   SharedPreferences.Editor editor = sharedPreferences.edit();
+                   editor.putString("THEME_LIST", "1");
+                   editor.commit();
+               }
+
+           }
         }
 
         @Override
@@ -123,6 +140,8 @@ public class settings extends AppCompatActivity {
             PreferenceManager.getDefaultSharedPreferences(context).unregisterOnSharedPreferenceChangeListener(this);
 
         }
+
+
 
 
     }

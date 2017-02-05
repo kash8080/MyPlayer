@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!--default455A64-->
-    <color name="colorPrimary">#455a64 </color>
-    <color name="colorPrimaryDark">#263238</color>
-    <color name="colorAccent">#FF5722</color>
-    <color name="colorPrimaryLight">#607D8B</color>
+    <color name="colorPrimary">#303030 </color>
+    <color name="colorPrimaryDark">#101010</color>
+    <color name="colorAccent">#00BCD4</color>
+    <color name="colorPrimaryLight">#505050</color>
 
-    <!--purple9C27B0-->
-    <color name="colorPrimarypurple">#9C27B0</color>
-    <color name="colorPrimaryDarkpurple">#7B1FA2</color>
-    <color name="colorAccentpurple">#CDDC39</color>
-    <color name="colorPrimaryLightpurple">#ba68c8</color>
+    <!--colouraccent FF5722-->
+    <color name="colorPrimarypurple">#990033</color>
+    <color name="colorPrimaryDarkpurple">#770011</color>
+    <color name="colorAccentpurple">#00BCD4</color>
+    <color name="colorPrimaryLightpurple">#aa0055</color>
 
     <!--purpleF44336-->
-    <color name="colorPrimaryred">#D32F2F</color>
-    <color name="colorPrimaryDarkred">#b71c1c</color>
+    <color name="colorPrimaryred">#c13832</color>
+    <color name="colorPrimaryDarkred">#a11510</color>
     <color name="colorAccentred">#00BCD4</color>
     <color name="colorPrimaryLightred">#e57373</color>
 
@@ -25,24 +25,52 @@
     <color name="colorPrimaryLightorange">#ff8a65 </color>
 
     <!--Indigo3F51B5-->
-    <color name="colorPrimaryindigo">#303F9F</color>
-    <color name="colorPrimaryDarkindigo">#1a237e</color>
-    <color name="colorAccentindigo">#FF5252</color>
-    <color name="colorPrimaryLightindigo">#7986cb </color>
+    <color name="colorPrimaryindigo">#131f33</color>
+    <color name="colorPrimaryDarkindigo">#020e22</color>
+    <color name="colorAccentindigo">#00BCD4</color>
+    <color name="colorPrimaryLightindigo">#353f55 </color>
 
     <!--brown795548-->
-    <color name="colorPrimarybrown">#5D4037</color>
-    <color name="colorPrimaryDarkbrown">#3e2723</color>
+    <color name="colorPrimarybrown">#6200ea</color>
+    <color name="colorPrimaryDarkbrown">#6200ea</color>
     <color name="colorAccentbrown">#00BCD4</color>
-    <color name="colorPrimaryLightbrown">#a1887f </color>
+    <color name="colorPrimaryLightbrown">#111111 </color>
+
+    <!--night795548
+    <color name="colorPrimarynight">#141D26</color>
+    <color name="colorPrimaryDarknight">#141D26</color>
+    <color name="colorAccentnight">#00BCD4</color>
+    <color name="colorPrimaryLightnight">#242936 </color>
+    <color name="colorPrimarybackgroundnight">#19242f </color>
+-->
+
+    <!--night795548
+    <color name="colorPrimarynight">#37474f</color>
+    <color name="colorPrimaryDarknight">#263238</color>
+    <color name="colorAccentnight">#00BCD4</color>
+    <color name="colorPrimaryLightnight">#475761 </color>
+    <color name="colorPrimarybackgroundnight">#19242f </color>
+
+-->
+    <!--night795548-->
+
+
+        <color name="colorPrimarynight">#243447</color>
+        <color name="colorPrimaryDarknight">#1b2836</color>
+        <color name="colorAccentnight">#00BCD4</color>
+        <color name="colorPrimaryLightnight">#37474f </color>
 
 
 
 
+    <color name="colorbackgroundbrown">#64423d</color>
+    <color name="colorbackgroundgrey">#333333</color>
 
-    <color name="colorSecondaryText">#848484</color>
-    <color name="colorPrimaryText">#212121</color>
-    <color name="colorWhite">#FFFFFF</color>
-    <color name="colortransparent">#00FFFFFF</color>
-    <color name="colorblack">#ff000000</color>
-</resources>
+        <color name="colorSecondaryText">#848484</color>
+        <color name="colorPrimaryText">#212121</color>
+        <color name="colorSecondaryTextNight">#cccccc</color>
+        <color name="colorPrimaryTextNight">#eeeeee</color>
+        <color name="colorWhite">#FFFFFF</color>
+        <color name="colortransparent">#00FFFFFF</color>
+        <color name="colorblack">#ff000000</color>
+    </resources>

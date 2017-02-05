@@ -4,6 +4,7 @@
     android:background="@color/colorAccent"
     android:layout_height="match_parent"
     android:id="@+id/bottom_slide"
+    android:transitionName="slider"
     xmlns:android="http://schemas.android.com/apk/res/android">
 
     <android.support.v7.widget.Toolbar
@@ -44,17 +45,23 @@
                     <TextView
 
                         android:layout_width="wrap_content"
-                        android:lines="1"
+                        android:maxLines="1"
                         android:layout_marginTop="5dp"
                         android:layout_marginEnd="50dp"
                         android:layout_marginRight="50dp"
                         android:id="@+id/bar_name"
                         android:textSize="14sp"
+                        android:ellipsize="marquee"
+                        android:selectAllOnFocus="true"
+                        android:marqueeRepeatLimit ="marquee_forever"
+                        android:focusable="true"
+                        android:focusableInTouchMode="true"
+                        android:scrollHorizontally="true"
                         android:textColor="@color/colorPrimaryText"
                         android:layout_height="25dp" />
                     <TextView
                         android:layout_width="wrap_content"
-
+                        android:textColor="@color/colorSecondaryText"
                         android:id="@+id/bar_artist"
                         android:lines="1"
                         android:textSize="12sp"
@@ -178,16 +185,29 @@
                         android:id="@+id/previous"
                         android:layout_gravity="center"
                         />
-                    <ImageButton
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-
-                        android:id="@+id/play_pause"
-                        android:layout_marginStart="20dp"
-                        android:layout_marginEnd="20dp"
+                    <FrameLayout
+                        android:layout_width="60dp"
+                        android:layout_height="60dp"
                         android:layout_gravity="center"
-                        android:background="#00ffffff"
-                        />
+                        >
+                        <de.hdodenhof.circleimageview.CircleImageView
+                            xmlns:app="http://schemas.android.com/apk/res-auto"
+                            android:id="@+id/profile_imagge"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:padding="5dp"
+                            android:src="#ee00BCD4"
+                             />
+                        <ImageButton
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:layout_gravity="center"
+                            android:id="@+id/play_pause"
+                            android:background="#00ffffff"
+                            />
+
+                    </FrameLayout>
+
                     <ImageButton
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"

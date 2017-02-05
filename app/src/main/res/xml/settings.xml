@@ -3,16 +3,24 @@
 
     <CheckBoxPreference
         android:key="check"
-        android:summary="click to enable push notifications"
-        android:title="Push Notifications"
+        android:summary="click to enable Night mode"
+        android:title="Night mode"
         android:defaultValue="false" />
 
     <ListPreference
         android:key="THEME_LIST"
         android:title="App Theme"
         android:summary="Change App theme"
-        android:defaultValue="3"
+        android:defaultValue="4"
         android:dialogTitle="Choose a Theme"
         android:entries="@array/theme_entries"
         android:entryValues="@array/theme_values" />
+
+    <com.androidplay.rahul.myplayer.ImagePickerPreference
+        android:key="image_chooser"
+        android:title="Choose an Image"
+        android:defaultValue="0"
+        android:dialogTitle="Choose a Theme"
+
+        />
 </PreferenceScreen>

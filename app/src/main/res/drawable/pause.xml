@@ -1,16 +1,16 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
         android:width="30dp"
         android:height="30dp"
-        android:viewportWidth="26.0"
-        android:viewportHeight="26.0">
+        android:viewportWidth="24.0"
+        android:viewportHeight="24.0">
     <group android:name="pause_group"
-        android:pivotX="13"
-        android:pivotY="13"
+        android:pivotX="12"
+        android:pivotY="12"
     >
     <path
         android:name="avd_pause"
-        android:fillColor="#FF5722"
-        android:pathData="M5,2 L5,24 10,24 10,2 M16,2 L16,24 21,24 21,2"/>
+        android:fillColor="#00BCD4"
+        android:pathData="M8,5 L8,20 10,20 10,5 M14,5 L14,20 16,20 16,5"/>
     </group>
     <!--M6,19h4L10,5L6,5v14zM14,5v14h4L18,5h-4z-->
 </vector>

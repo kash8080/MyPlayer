@@ -5,10 +5,10 @@
     >
     <target
         android:name="avd_pause_white"
-        android:animation="@animator/pause_to_play" />
-
+        android:animation="@animator/pause_to_play_white" />
+<!--
     <target
         android:name="pause_group_white"
         android:animation="@animator/rotate" />
-
+-->
 </animated-vector>

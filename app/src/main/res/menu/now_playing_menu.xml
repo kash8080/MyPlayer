@@ -8,5 +8,12 @@
         android:title="Clear Queue"
         app:showAsAction="never"
         />
+    <item
+
+        android:id="@+id/nowplayingmenu_saveAsPlaylist"
+        android:orderInCategory="30"
+        android:title="Save As Playlist"
+        app:showAsAction="never"
+        />
 
 </menu>

@@ -63,8 +63,8 @@ public class askPermission extends Fragment {
 
     public void request_perm(){
         ActivityCompat.requestPermissions(getActivity(),
-                new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
-                read_external);
+                new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},read_external
+                );
         // read_external is an
         // app-defined int constant. The callback method gets the
         // result of the request.

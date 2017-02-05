@@ -7,7 +7,7 @@
 
     android:valueFrom="@string/svg_triangle_white"
 
-    android:valueTo="@string/svg_pause"
+    android:valueTo="@string/svg_pause_white"
 
     android:duration="@integer/playpause_duration"
 

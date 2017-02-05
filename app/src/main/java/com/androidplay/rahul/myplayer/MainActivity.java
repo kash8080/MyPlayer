@@ -1,10 +1,14 @@
 package com.androidplay.rahul.myplayer;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
+import android.app.Activity;
 import android.app.AlertDialog;
 
 import android.Manifest;
 import android.app.Dialog;
+import android.app.FragmentManager;
 import android.app.SearchManager;
 import android.content.ContentValues;
 import android.content.Context;
@@ -45,6 +49,7 @@ import android.support.v7.graphics.Palette;
 import android.support.v7.widget.SearchView;
 import android.text.InputType;
 import android.transition.TransitionInflater;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
@@ -56,8 +61,10 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.ViewAnimationUtils;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -69,6 +76,7 @@ import android.widget.TextView;
 
 import com.nostra13.universalimageloader.core.ImageLoader;
 import com.sothree.slidinguppanel.SlidingUpPanelLayout;
+import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 import com.transitionseverywhere.Slide;
 import com.transitionseverywhere.Transition;
@@ -108,7 +116,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     SharedPreferences sharedPref;
     ApplicationController con;
     PopupMenu popup;
-
+    ImageView main_backgroundimage;
     //slidinglayout
     Toolbar card;
     String path;
@@ -122,7 +130,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     updateseekbar1 seekbarasync;
     songs current_song;
     Long setmax=0L;
-    public boolean isrepeat,isshuffle;
+    public boolean isshuffle;
+    private int isrepeat=0;
     LinearLayout slidercontrolcolour;
 
     ImageLoader imageLoader;
@@ -135,6 +144,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     MediaMetadataCompat currentmetadata ;
     LinearLayout recView_tablayout;
 
+    String theme_no;
+    Boolean dark;
     static Context context;
     private MediaControllerCompat.Callback callback=new MediaControllerCompat.Callback() {
         @Override
@@ -159,30 +170,35 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         context=this;
         Log.i("llllp", "oncreate");
         con = new ApplicationController(this.getApplicationContext(), this);
-        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
-        String thme=sharedPref.getString("THEME_LIST","1") ;
-        switch (thme){
-            case "1":setTheme(R.style.AppTheme);break;
-            case "2":setTheme(R.style.AppTheme_Purple);break;
-            case "3":setTheme(R.style.AppTheme_Red);break;
-            case "4":setTheme(R.style.AppTheme_orange);break;
-            case "5":setTheme(R.style.AppTheme_indigo);break;
-            case "6":setTheme(R.style.AppTheme_brown);break;
-            default:setTheme(R.style.AppTheme);break;
-        }
+        sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+        theme_no=sharedPref.getString("THEME_LIST","1") ;
+        dark = sharedPref.getBoolean("check", false);
+        setthemecolours();
 
         if(savedInstanceState==null){
             super.onCreate(savedInstanceState);
+            if(con.needforpermissions(android.Manifest.permission.READ_EXTERNAL_STORAGE)) {
+                //activity trying to restore previous state which is null
+                // now because the system terminates the rocess while revoking perissions
+                startActivity(new Intent(this, PermissionActivity.class));
+                finish();
+                return;
+                //finish called to stop further proccess of this activity
+            }
         }else{
-            if(con.needforpermissions(Manifest.permission.READ_EXTERNAL_STORAGE)) {
+            if(con.needforpermissions(android.Manifest.permission.READ_EXTERNAL_STORAGE)) {
                 super.onCreate(new Bundle());
                 //activity trying to restore previous state which is null
                 // now because the system terminates the rocess while revoking perissions
+                startActivity(new Intent(this, PermissionActivity.class));
+                finish();
+                return;
+                //finish called to stop further proccess of this activity
             }else{
                 super.onCreate(savedInstanceState);
             }
-        }
 
+        }
         //overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
         setContentView(R.layout.activity_main);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -191,21 +207,31 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         //initialise everything
         initialise();
 
+        setthemeAndBackground();
 
         setSupportActionBar(toolbar);
 
         //to check if user revoke permissions while app running .
         if(con.needforpermissions(Manifest.permission.READ_EXTERNAL_STORAGE)){
+            Log.i("llllp", "need for permissions");
+
             request_perm();
             //startActivity(new Intent(this,PermissionActivity.class));
         }else{
+            Log.i("llllp", "loadsongswthimges");
+
             con.loadsongswithimages();
         }
 
-        //settings
-        sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
-        String sync = String.valueOf(sharedPref.getBoolean("check", false));
-
+        SharedPreferences sp = this.getSharedPreferences("MyPlayer_CurrentsongInfo", Activity.MODE_PRIVATE);
+        int pos = sp.getInt("service_currentSongPositionInList", 0);
+        if(con.musicSrv!=null) {
+            if (!con.musicSrv.previousstatesaved) {
+                con.musicSrv.restoreCurrentSongValue();
+            }
+        }else{
+            con.setCurrent_pos(pos);
+        }
         imageLoader = ImageLoader.getInstance();
         set_card_visibility();
         card.setContentInsetsAbsolute(0, 0);
@@ -214,13 +240,212 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         //navigation header
         View v=navigationView.getHeaderView(0);
-        profileimage=(CircleImageView)v.findViewById(R.id.profile_image);
-        nav_name=(TextView)v.findViewById(R.id.nav_name) ;
+        //profileimage=(CircleImageView)v.findViewById(R.id.profile_image);
+        //nav_name=(TextView)v.findViewById(R.id.nav_name) ;
 
+        imageslide.setOnTouchListener(new OnSwipeTouchListener(this) {
+            @Override
+            public void onSwipeLeft() {
+                seekBar.setProgress(0);
+                con.playnext();
+                seekBar.setProgress(0);
+            }
+            public void onSwipeRight() {
+                seekBar.setProgress(0);
+                con.playprev();
+                seekBar.setProgress(0);
+            }
+        });
 
         connectControllerToSession(con.getMediaSessionToken());
+        gettoken gettokenn=new gettoken();
+        gettokenn.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         Log.i("llllp","on create end");
+
     }
+
+    private void setthemecolours(){
+        if(dark){
+            setTheme(R.style.AppThemeDark_night);
+        }else {
+            switch (theme_no) {
+                case "1":
+                    setTheme(R.style.AppTheme);
+                    break;
+                case "2":
+                    setTheme(R.style.AppTheme_Purple);
+                    break;
+                case "3":
+                    setTheme(R.style.AppTheme_Red);
+                    break;
+                case "4":
+                    setTheme(R.style.AppTheme_orange);
+                    break;
+                case "5":
+                    setTheme(R.style.AppTheme_indigo);
+                    break;
+                case "6":
+                    setTheme(R.style.AppTheme_brown);
+                    break;
+                default:
+                    setTheme(R.style.AppTheme);
+                    break;
+            }
+        }
+    }
+    private void setthemeAndBackground() {
+        Boolean dark = sharedPref.getBoolean("check", false);
+        int img_no = sharedPref.getInt("image_chooser", 0);
+        if (dark) {
+            Log.i("settn", "dark");
+            navigationView.setBackgroundColor(con.getPrimary());
+            main_backgroundimage.setBackgroundColor(ContextCompat.getColor(this,R.color.colorPrimaryDarknight));
+            appBarLayout.setAlpha(1);
+            tablayout.setAlpha(1);
+        } else {
+
+            if (img_no >= 1) {
+                Log.i("settn", "main act current value=" + img_no);
+                DisplayMetrics displaymetrics = new DisplayMetrics();
+                this.getWindowManager().getDefaultDisplay().getMetrics(displaymetrics);
+                coordinatorlayout.setBackgroundColor(ContextCompat.getColor(this,R.color.colorbackgroundgrey));
+                int width=displaymetrics.widthPixels;
+                int height=displaymetrics.heightPixels;
+                switch (img_no) {
+                    case 1: {
+                        if (getResources().getBoolean(R.bool.is_landscape)) {
+                            //set height of cardview=width
+                            Picasso.with(this)
+                                    .load(R.drawable.coffee_land)
+                                    .resize(width, height)
+                                    .centerCrop()
+                                    .into(main_backgroundimage,picassocallback);
+                        } else {
+
+                            // create the animation (the final radius is zero)
+                            main_backgroundimage.setVisibility(View.INVISIBLE);
+                            Picasso.with(this)
+                                    .load(R.drawable.coffee)
+                                    .resize(width, height)
+                                    .centerCrop()
+                                    .into(main_backgroundimage,picassocallback);
+                        }
+                        break;
+                    }
+                    case 2: {
+                        if (getResources().getBoolean(R.bool.is_landscape)) {
+                            Picasso.with(this)
+                                    .load(R.drawable.presents_land)
+                                    .error(R.drawable.coffee_land)
+                                    .resize(width, height)
+                                    .centerCrop()
+                                    .into(main_backgroundimage,picassocallback);
+                        } else {
+                            Picasso.with(this)
+                                    .load(R.drawable.presents_port)
+                                    .error(R.drawable.coffee)
+                                    .resize(width, height)
+                                    .centerCrop()
+                                    .into(main_backgroundimage,picassocallback);
+                        }
+                        break;
+                    }
+                    case 3: {
+                        if (getResources().getBoolean(R.bool.is_landscape)) {
+                            Picasso.with(this)
+                                    .load(R.drawable.leaves_land)
+                                    .resize(width, height)
+                                    .centerCrop()
+                                    .into(main_backgroundimage,picassocallback);
+                        } else {
+                            Picasso.with(this)
+                                    .load(R.drawable.leaves_port)
+                                    .resize(width, height)
+                                    .centerCrop()
+                                    .into(main_backgroundimage,picassocallback);
+                        }
+                        break;
+                    }
+                    case 4: {
+                        if (getResources().getBoolean(R.bool.is_landscape)) {
+                            Picasso.with(this)
+                                    .load(R.drawable.leaves2_land)
+                                    .resize(width, height)
+                                    .centerCrop()
+                                    .into(main_backgroundimage,picassocallback);
+                        } else {
+                            Picasso.with(this)
+                                    .load(R.drawable.leaves2_port)
+                                    .resize(width, height)
+                                    .centerCrop()
+                                    .into(main_backgroundimage,picassocallback);
+                        }
+                        break;
+                    }
+                    case 5: {
+                        if (getResources().getBoolean(R.bool.is_landscape)) {
+                            Picasso.with(this)
+                                    .load(R.drawable.bloom_land)
+                                    .resize(width, height)
+                                    .centerCrop()
+                                    .into(main_backgroundimage,picassocallback);
+
+                        } else {
+                            Picasso.with(this)
+                                    .load(R.drawable.bloom_port)
+                                    .resize(width, height)
+                                    .centerCrop()
+                                    .into(main_backgroundimage,picassocallback);
+                        }
+                        break;
+                    }
+                }
+                //make toolbar and tablayout semitransparent for grey theme and opaque for others
+               // if (theme_no.equals("1")) {
+                    appBarLayout.setAlpha(0.7f);
+                    tablayout.setAlpha(.7f);
+               /* } else {
+                    appBarLayout.setAlpha(1);
+                    tablayout.setAlpha(1);
+                }*/
+            } else {
+                Log.i("settn", "not dark");
+
+                main_backgroundimage.setBackground(null);
+                main_backgroundimage.setBackgroundColor(0xffffffff);
+                appBarLayout.setAlpha(1);
+                tablayout.setAlpha(1);
+            }
+        }
+    }
+    public Callback picassocallback=new Callback() {
+        @Override
+        public void onSuccess() {
+            Log.i("picss","onsuccess");
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP && main_backgroundimage.isAttachedToWindow()){
+                int cx = main_backgroundimage.getWidth();
+                int cy = (main_backgroundimage.getHeight() );
+
+                // get the initial radius for the clipping circle
+                float finalradius = (float) Math.hypot(cx, cy);
+                Animator anim = ViewAnimationUtils.createCircularReveal(main_backgroundimage, 0, cy, 0,finalradius);
+                anim.setDuration(600);
+                // start the animation
+                main_backgroundimage.setVisibility(View.VISIBLE);
+                anim.start();
+            }else{
+                main_backgroundimage.setVisibility(View.VISIBLE);
+            }
+
+        }
+
+        @Override
+        public void onError() {
+            Log.i("picss","onerror");
+            main_backgroundimage.setVisibility(View.VISIBLE);
+
+        }
+    };
 
     private void nav_tab_setup(){
         ////////// //navigation view setup
@@ -266,6 +491,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         appBarLayout=(AppBarLayout) findViewById(R.id.MyAppbar);
         bottom_control_toolbar=(Toolbar)findViewById(R.id.bottom_control_toolbar);
         recView_tablayout=(LinearLayout)findViewById(R.id.ssss);
+        main_backgroundimage = (ImageView) findViewById(R.id.main_background_image);
 
         //sliding player setup
         card = (Toolbar) findViewById(R.id.controller_bar);
@@ -299,17 +525,22 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     private void connectControllerToSession(MediaSessionCompat.Token token) {
-        try {
-            controllerCompat=new MediaControllerCompat(this,token);
-        } catch (RemoteException e) {
-            e.printStackTrace();
+        if(token!=null) {
+            try {
+                controllerCompat = new MediaControllerCompat(this, token);
+                controllerCompat.registerCallback(callback);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+            PlaybackStateCompat stateCompat = controllerCompat.getPlaybackState();
+            MediaMetadataCompat metadataCompat = controllerCompat.getMetadata();
+            currentPlaybackstate = stateCompat;
+            currentmetadata = metadataCompat;
+            setstate(stateCompat);
+            setmetadata(metadataCompat);
+            controllerCompat.registerCallback(callback);
         }
-        PlaybackStateCompat stateCompat=controllerCompat.getPlaybackState();
-        MediaMetadataCompat metadataCompat=controllerCompat.getMetadata();
-        currentPlaybackstate=stateCompat;
-        currentmetadata=metadataCompat;
-        setstate(stateCompat);
-        setmetadata(metadataCompat);
+
     }
 
     public Fragment getFragment(int position){
@@ -324,6 +555,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             if(slider.getPanelState()== SlidingUpPanelLayout.PanelState.EXPANDED){
                 slider.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
             }else {
+                for(int i=0;i<4;i++){
+                     adapter.getFragment(i);
+
+                }
                 super.onBackPressed();
             }
         }
@@ -339,6 +574,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         } else if (menuid == 3) {
              Log.i("cccc", "menuid=2");
              getMenuInflater().inflate(R.menu.main_nosort, menu);
+             SearchManager searchManager =(SearchManager) getSystemService(Context.SEARCH_SERVICE);
+
+             MenuItem item=menu.findItem(R.id.search_view);
+             SearchView searchView=(SearchView) MenuItemCompat.getActionView(item);
+             searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
          } else  {
             // Associate searchable configuration with the SearchView
             SearchManager searchManager =(SearchManager) getSystemService(Context.SEARCH_SERVICE);
@@ -350,7 +590,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
             // SearchView.SearchAutoComplete searchAutoComplete = (SearchView.SearchAutoComplete) searchView.findViewById(android.support.v7.appcompat.R.id.search_src_text);
             //searchAutoComplete.setHintTextColor(ContextCompat.getColor(this,R.color.colorSecondaryText));
-
         }
 
         return super.onCreateOptionsMenu(menu);
@@ -563,11 +802,24 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     @Override
     public void onPageSelected(int position) {
-        if(position!=0){
-            if(((home)getFragment(0)).mActionMode !=null){
-                ((home)getFragment(0)).mActionMode.finish();
+        if(position!=menuid){
+            try {
+                if(menuid==0) {
+                    if (((home) getFragment(menuid)).mActionMode != null) {
+                        ((home) getFragment(menuid)).mActionMode.finish();
+                    }
+                }else if(menuid==1) {
+                    if (((Albums) getFragment(menuid)).mActionMode != null) {
+                        ((Albums) getFragment(menuid)).mActionMode.finish();
+                    }
+                }else if(menuid==3) {
+                    if (((Artist) getFragment(menuid)).mActionMode != null) {
+                        ((Artist) getFragment(menuid)).mActionMode.finish();
+                    }
+                }
+            }catch (Exception e){
+                e.printStackTrace();
             }
-
         }
         menuid = position;
         invalidateOptionsMenu();
@@ -725,6 +977,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 }
 
             }
+            case 12: {
+
+            }
 
         }
     }
@@ -777,13 +1032,21 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             }
 
             case R.id.play_pause :{
-                Log.i("mmmm","playpause");
+                Log.i("jihu","playpause");
+                Log.i("jihu","musicsrv null"+String.valueOf(con.musicSrv==null));
+                Log.i("jihu","musicsrv msession null"+String.valueOf(con.musicSrv.msession==null));
+                Log.i("jihu","musicsrv ,session activv isactive"+String.valueOf(con.musicSrv.msession.isActive()));
+
                 // Log.i("mmmm",String.valueOf(con.getCurrentPosition())+"---"+String.valueOf(con.getlist().size()));
                 currentPlaybackstate=controllerCompat.getPlaybackState();
+                Log.i("jihu","musicsrv ,controller compat playback state "+String.valueOf(currentPlaybackstate.getState()));
+
                 if(currentPlaybackstate!=null) {
-                    Log.i("mjkl", "current playback state is not null play_pause click");
+                    Log.i("jihu", "current playback state is not null play_pause click");
 
                     MediaControllerCompat.TransportControls controls = controllerCompat.getTransportControls();
+                    Log.i("jihu","musicsrv ,controller compat playback controls null"+String.valueOf(controls==null));
+
                     switch (currentPlaybackstate.getState()) {
                         case PlaybackStateCompat.STATE_PLAYING: {
                             Log.i("mjkl", "state playing state to pause");
@@ -800,7 +1063,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
                     }
                 }else{
-                    Log.i("mjkl", "current playback state is null play_pause click");
+                    Log.i("jihu", "current playback state is null play_pause click");
 
                     con.playsong(0);
                 }
@@ -844,15 +1107,22 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 Log.i("mmmm","repeat");
 
                 Log.i("mmmm","repeat: getDuration "+String.valueOf(con.getDuration()/1000L));
-                if(isrepeat){
-                    isrepeat=false;
-                    con.setRepeat(false);
+
+                isrepeat=con.isRepeat();
+                if(isrepeat==0){
+                    isrepeat=1;
+                    con.setRepeat(1);
+                    setrepeatbutton(true);
+                }else if(isrepeat==1){
+                    isrepeat=2;
+                    con.setRepeat(2);
                     setrepeatbutton(true);
                 }else{
-                    isrepeat=true;
-                    con.setRepeat(true);
+                    isrepeat=0;
+                    con.setRepeat(0);
                     setrepeatbutton(true);
                 }
+
                 return;
             }
             case R.id.shuffle :{
@@ -881,9 +1151,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         super.onResume();
         setrepeatbutton(false);
         setshufflebutton(false);
-        controllerCompat.registerCallback(callback);
-        currentPlaybackstate=controllerCompat.getPlaybackState();
-        currentmetadata=controllerCompat.getMetadata();
+        connectControllerToSession(con.getMediaSessionToken());
+        if(controllerCompat!=null) {
+            controllerCompat.registerCallback(callback);
+            currentPlaybackstate=controllerCompat.getPlaybackState();
+            currentmetadata=controllerCompat.getMetadata();
+        }
         set_card_visibility();
         try {
             Log.i("klkl", "onresume");
@@ -909,8 +1182,16 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         seekbarasync.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         isplaying=con.isPlaying();
         refreshview();
+        Log.i("seticons", "from on resume");
+
         seticon(false);
         Log.i("llllp","on resume end");
+        if(con.playlistfragmentchanged){
+            con.playlistfragmentchanged=false;
+            refreshFragment(2);
+        }
+        connectControllerToSession(con.getMediaSessionToken());
+
     }
 
     @Override
@@ -918,8 +1199,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         super.onPause();
         seekbarasync.cancel(true);
         seekbarasync.canrun=false;
-        controllerCompat.unregisterCallback(callback);
-
+        if(controllerCompat!=null) {
+            controllerCompat.unregisterCallback(callback);
+        }
         //tokentracker.stopTracking();
         //profileTracker.stopTracking();
     }
@@ -986,12 +1268,17 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
 
 
+
     //-----ui elements methods
     public void setrepeatbutton(boolean animation){
         isrepeat=con.isRepeat();
-        if(isrepeat){
+        if(isrepeat==0){
+            repeat.setImageResource(R.drawable.repeat);
+        }else if(isrepeat==1){
             repeat.setImageResource(R.drawable.repeat_selected);
-        }else      repeat.setImageResource(R.drawable.repeat);
+        }else{
+            repeat.setImageResource(R.drawable.repeat_one);
+        }
 
         if(animation) {
             repeat.animate().scaleX(1.25f).scaleY(1.25f).setDuration(0).withEndAction(new Runnable() {
@@ -1018,15 +1305,17 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
     }
 
+
     public void seticon(boolean a){
         Log.i("seticon","start---");
 
         isplaying=con.isPlaying();
+
         if(isplaying){
             Log.i("seticon","isplaying");
             //play_pause.setImageResource(R.drawable.pause_white);
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && a && slider.getPanelState()== SlidingUpPanelLayout.PanelState.EXPANDED) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && a && slider.getPanelState()== SlidingUpPanelLayout.PanelState.EXPANDED ) {
                 play_pause.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.avd_play_to_pause_white));
                 Drawable drawable = play_pause.getDrawable();
                 ((Animatable) drawable).start();
@@ -1038,7 +1327,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             Log.i("seticon","!isplaying");
 
             //play_pause.setImageResource(R.drawable.play_white);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && a &&  slider.getPanelState()== SlidingUpPanelLayout.PanelState.EXPANDED) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && a &&  slider.getPanelState()== SlidingUpPanelLayout.PanelState.EXPANDED ) {
                 play_pause.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.avd_pause_to_play_white));
                 Drawable drawable = play_pause.getDrawable();
                 ((Animatable) drawable).start();
@@ -1047,28 +1336,30 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             }
         }
         setbutton(a);
+
         Log.i("seticon","seticon end---");
 
     }
 
-    public void setbutton(boolean a) {
-        Log.i("seticon","setbutto start---");
+   public void setbutton(boolean a) {
 
         isplaying=con.isPlaying();
         if (isplaying) {
             Log.i("seticon","isplaying button");
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && a &&  slider.getPanelState()== SlidingUpPanelLayout.PanelState.COLLAPSED) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && a &&  slider.getPanelState()== SlidingUpPanelLayout.PanelState.COLLAPSED ) {
                 button.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.avd_play_to_pause));
                 Drawable drawable = button.getDrawable();
+
                 ((Animatable) drawable).start();
+
             }else{
                 button.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.pause));
             }
         } else {
             Log.i("seticon","!isplaying button");
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && a &&  slider.getPanelState()== SlidingUpPanelLayout.PanelState.COLLAPSED) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && a &&  slider.getPanelState()== SlidingUpPanelLayout.PanelState.COLLAPSED ) {
                 button.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.avd_pause_to_play));
                 Drawable drawable = button.getDrawable();
                 ((Animatable) drawable).start();
@@ -1076,7 +1367,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 button.setImageDrawable(ContextCompat.getDrawable(this,R.drawable.play));
             }
         }
-        Log.i("seticon","setbuttn end---");
 
     }
     public void refreshview(){
@@ -1130,6 +1420,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             seekBar.setProgress(timecurrentsec);
             //seekBar.setMax(con.getDuration());
             Log.i("lllll","----"+String.valueOf(timemilli));
+            Log.i("seticons", "from set data");
+
             seticon(false);
 
         }catch (Exception e){e.printStackTrace();
@@ -1162,18 +1454,31 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     public void set_card_visibility(){
         Log.i("klkl", String.valueOf(con.isnull()) +"  "+String.valueOf(con.isPlaying()));
-
-        if (!con.isnull() && con.getsong()!=null){
+/*
+        if (con.getsong()!=null){
             int ii=this.getResources().getInteger(R.integer.panelheight);
             slider.setPanelHeight(ii);
             slider.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
         }else{
             slider.setPanelState(SlidingUpPanelLayout.PanelState.HIDDEN);
         }
-
+*/
+      /*  SharedPreferences sp = this.getSharedPreferences("MyPlayer_CurrentsongInfo", Activity.MODE_PRIVATE);
+        int pos = sp.getInt("service_currentSongPositionInList", 0);
+         Long seek = sp.getLong("service_currentSongSeekValue", 100);
+        if(pos==0 && seek==100){
+            slider.setPanelState(SlidingUpPanelLayout.PanelState.HIDDEN);
+        }else{
+        */
+            int ii=this.getResources().getInteger(R.integer.panelheight);
+            slider.setPanelHeight(ii);
+            slider.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
+        //}
     }
 
     public void setcard(boolean a, songs song) {
+        Log.i("seticons", "from set card");
+
         seticon(false);
         path = song.getImagepath();
         if (song != null) {
@@ -1217,8 +1522,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     public void setmetadata(MediaMetadataCompat metadataCompat){
         refreshview();
+        try {
+            ((home) getFragment(0)).rec_adapter.notifyDataSetChanged();
+        }catch (Exception e){}
     }
     public void setstate(PlaybackStateCompat stateCompat){
+        Log.i("mjkl", "setstate");
+        Log.i("seticons", "setstate");
+
         if(stateCompat!=null) {
             Log.i("mjkl", "setstate state is not null");
             switch (stateCompat.getState()) {
@@ -1236,6 +1547,30 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             }
         }else{
             seticon(false);
+        }
+        try {
+            ((home) getFragment(0)).rec_adapter.notifyDataSetChanged();
+        }catch (Exception e){}
+    }
+
+    public class gettoken extends AsyncTask<Void,Void,Void>{
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+            while(con.getMediaSessionToken()==null){
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            connectControllerToSession(con.getMediaSessionToken());
+            super.onPostExecute(aVoid);
         }
     }
 

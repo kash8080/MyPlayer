@@ -1,6 +1,9 @@
 package com.androidplay.rahul.myplayer;
 
+import android.app.AlertDialog;
 import android.content.ContentResolver;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -8,6 +11,8 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.view.ActionMode;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -15,6 +20,8 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 
@@ -24,15 +31,20 @@ import xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScrol
  * Created by Rahul on 23-01-2017.
  */
 
-public class Artist extends Fragment {
-    ArrayList<songs> list ;
+public class Artist extends Fragment implements Toolbar_ActionMode_Callback.artist_interface{
+    ArrayList<songs> list=new ArrayList<>() ;
     ApplicationController con;
     ContentResolver res;
     boolean hassavedlist=false;
     RecyclerView rec_view;
-    recycler_adapter rec_adapter;
+    private recycler_adapter rec_adapter;
     private RecyclerView.LayoutManager mLayoutManager;
     boolean cancelled=false;
+
+    //actionmode
+    public ActionMode mActionMode;
+    public boolean canremoveSelection=true;
+    AlertDialog.Builder builder;
 
     @Nullable
     @Override
@@ -71,7 +83,9 @@ public class Artist extends Fragment {
         rec_view.setLayoutManager(mLayoutManager);
         rec_view.setAdapter(rec_adapter);
 
+        implementRecyclerViewListeners();
         return v;
+
     }
 
 
@@ -156,4 +170,135 @@ public class Artist extends Fragment {
         }
     }
 
+
+
+
+    MainActivity mainact;
+    @Override
+    public void onAttach(Context context) {
+        mainact=(MainActivity)context;
+        super.onAttach(context);
+    }
+
+    //action mode methods
+    public void implementRecyclerViewListeners(){
+        rec_view.addOnItemTouchListener(new RecyclerTouchListener(getActivity(), rec_view, new RecyclerClick_Listener() {
+            @Override
+            public void onClick(View view, int position) {
+                //Log.i("contxt","home recycler listener on single tap");
+                //If ActionMode not null select item
+                Log.i("clickedd","home on click");
+
+                if (mActionMode != null)
+                    onListItemSelect(position);
+            }
+
+            @Override
+            public void onLongClick(View view, int position) {
+                //Log.i("contxt","home recycler listener on long tap");
+                Log.i("clickedd","home on long click");
+
+                //Select item on long click
+                onListItemSelect(position);
+            }
+        }));
+    }
+    //List item select method
+    private void onListItemSelect(int position) {
+        rec_adapter.toggleSelection(position);//Toggle the selection
+
+        boolean hasCheckedItems = rec_adapter.getSelectedCount() > 0;//Check if any items are already selected or not
+
+        if (hasCheckedItems && mActionMode == null){
+            // there are some selected items, start the actionMode
+            mActionMode = ((AppCompatActivity) getActivity()).startSupportActionMode(
+                    new Toolbar_ActionMode_Callback(this,"artist"));
+
+            mainact.lockdrawer();
+            rec_adapter.mActionmodeset(true);
+
+        }else if (!hasCheckedItems && mActionMode != null)
+
+            // there no selected items, finish the actionMode
+            mActionMode.finish();
+        if (mActionMode != null)
+            //set action mode title on item selection
+            mActionMode.setTitle(String.valueOf(rec_adapter.getSelectedCount()) + " selected");
+    }
+
+
+    //Set action mode null after use
+    @Override
+    public void setNullToActionMode() {
+        if (mActionMode != null) {
+            Log.i("animt","null to action mode");
+
+            mActionMode = null;
+            mainact.releasedrawer();
+            removeSelections();
+            rec_adapter.mActionmodeset(false);
+        }
+    }
+    @Override
+    public void removeSelections(){
+        if(canremoveSelection){
+            rec_adapter.removeSelection();
+        }
+    }
+    @Override
+    public void context_delete(){
+        Log.i("ationmode","album delete");
+        builder=new AlertDialog.Builder(getActivity());
+        builder.setMessage("are you sure you want to delete "+String.valueOf(rec_adapter.getSelectedCount())+" selected songs");
+        builder.setCancelable(false) ;
+        builder.setPositiveButton(
+                "yes",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        canremoveSelection=true;
+                        rec_adapter.context_artistdelete();
+                        Toast.makeText(Artist.this.getActivity(),"deleting",Toast.LENGTH_LONG).show();
+                        removeSelections();
+                    }
+                });
+
+        builder.setNegativeButton(
+                "no",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        dialog.cancel();
+                        canremoveSelection=true;
+                        removeSelections();
+                        if(mActionMode!=null) {
+                            mActionMode.finish();
+                        }
+                    }
+                });
+
+        AlertDialog alert = builder.create();
+        alert.show();
+    }
+    @Override
+    public void context_addtoPlaylist(){
+        Log.i("artist","album delete");
+        if(rec_adapter==null){
+            Log.i("artist","rec adapter is null");
+
+        }else{
+            rec_adapter.context_artistaddtoPlaylist();
+
+        }
+    }
+
+    @Override
+    public void canremoveSelection(boolean g) {
+        canremoveSelection=g;
+    }
+
+
+    @Override
+    public void onResume() {
+
+        super.onResume();
+    }
 }

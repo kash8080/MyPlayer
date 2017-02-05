@@ -11,7 +11,7 @@
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="com.androidplay.rahul.myplayer.PermissionActivity"
-    android:background="@color/colorPrimaryLight">
+    android:background="#909090">
 
     <TextView
         android:text="Permission required to access your songs!"
@@ -29,12 +29,13 @@
         android:background="@color/colorPrimary"
         android:text="Grant Permission!"
         android:textColor="#ffffff"
-        android:paddingStart="10dp"
-        android:paddingLeft="10dp"
+        android:paddingStart="20dp"
+        android:paddingLeft="20dp"
         android:id="@+id/perm_button"
-        android:paddingEnd="10dp"
-        android:paddingRight="10dp"
+        android:paddingEnd="20dp"
+        android:paddingRight="20dp"
         android:layout_marginBottom="56dp"
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true" />
+
 </RelativeLayout>
