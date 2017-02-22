@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <item android:title="Open"
-        android:id="@+id/album_open">
-    </item>
+
     <item android:title="Play"
         android:id="@+id/album_playall">
+    </item>
+    <item android:title="Edit Album Info"
+        android:id="@+id/album_edit_info">
+    </item>
+    <item android:title="Add to queue"
+        android:id="@+id/album_addtoqueue">
     </item>
     <item android:title="Add to Playlist"
         android:id="@+id/Album_addToPlaylist">

@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:title="Play"
-        android:id="@+id/psongs_play"
-        >
-    </item>
+
     <item android:title="Play Next"
         android:id="@+id/psongs_playnext"
         >
@@ -16,20 +13,29 @@
         android:id="@+id/psongs_add_to_playlist"
         >
     </item>
-    <item android:title="Go to Artist"
-        android:id="@+id/psongs_moreFromArtist"
-        >
-    </item>
     <item android:title="Go to Album"
         android:id="@+id/psongs_OpenAlbum"
+        >
+    </item>
+    <item android:title="Go to Artist"
+        android:id="@+id/psongs_moreFromArtist"
         >
     </item>
     <item android:title="Share"
         android:id="@+id/psongs_share"
         >
     </item>
-    <item android:title="Rename"
-        android:id="@+id/psongs_Rename"
+    <item android:title="Set as ringtone"
+        android:id="@+id/psongs_setasringtone"
+        >
+    </item>
+    <item android:title="Edit track Info"
+        android:id="@+id/psongs_edit_info"
+        >
+    </item>
+    <item android:title="Edit"
+        android:icon="@drawable/shuffle_selected"
+        android:id="@+id/psongs_cut"
         >
     </item>
     <item android:title="Delete"

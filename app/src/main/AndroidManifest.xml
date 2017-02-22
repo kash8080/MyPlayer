@@ -1,24 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.androidplay.rahul.myplayer">
+    package="com.androidplay.one.myplayer">
 
-    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.CHANGE_CONFIGURATION" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <!--
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+-->
     <application
-        android:name=".ApplicationController"
+        android:name="com.androidplay.one.myplayer.ApplicationController"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:supportsRtl="true"
         android:largeHeap="true"
+        android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".MainActivity">
+        <activity android:name="com.androidplay.one.myplayer.activities.MainActivity">
             <meta-data
                 android:name="android.app.default_searchable"
                 android:value=".SearchableActivity" />
@@ -30,14 +37,14 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".open_playlist"
+            android:name="com.androidplay.one.myplayer.activities.open_playlist"
             android:theme="@style/AppTheme" />
         <activity
-            android:name=".ChooseArtistAlbum"
+            android:name="com.androidplay.one.myplayer.activities.ChooseArtistAlbum"
             android:theme="@style/AppTheme" />
         <activity
-            android:name=".playerr"
-            android:parentActivityName=".MainActivity"
+            android:name="com.androidplay.one.myplayer.activities.playerr"
+            android:parentActivityName="com.androidplay.one.myplayer.activities.MainActivity"
             android:theme="@style/AppTheme">
             <intent-filter>
                 <action android:name="android.intent.action.second_activity" />
@@ -46,9 +53,8 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".Now_playing"
+            android:name="com.androidplay.one.myplayer.activities.Now_playing"
             android:theme="@style/AppTheme" />
-
 
         <receiver android:name="android.support.v4.media.session.MediaButtonReceiver">
             <intent-filter>
@@ -57,7 +63,7 @@
         </receiver>
 
         <service
-            android:name=".playerservice"
+            android:name="com.androidplay.one.myplayer.playerservice"
             android:exported="false"
             android:stopWithTask="false">
             <intent-filter>
@@ -66,10 +72,10 @@
         </service>
 
         <activity
-            android:name=".settings"
-            android:theme="@style/AppTheme"></activity>
+            android:name="com.androidplay.one.myplayer.activities.settings"
+            android:theme="@style/AppTheme" />
         <activity
-            android:name=".PermissionActivity"
+            android:name="com.androidplay.one.myplayer.activities.PermissionActivity"
             android:label="@string/app_name"
             android:theme="@style/AppTheme">
             <intent-filter>
@@ -79,7 +85,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".SearchableActivity"
+            android:name="com.androidplay.one.myplayer.activities.SearchableActivity"
             android:launchMode="singleTop"
             android:theme="@style/AppTheme">
             <intent-filter>
@@ -92,10 +98,13 @@
         </activity>
 
         <provider
-            android:name=".MySuggestionProvider"
-            android:authorities="com.androidplay.rahul.myplayer.MySuggestionProvider" />
+            android:name="com.androidplay.one.myplayer.MySuggestionProvider"
+            android:authorities="com.androidplay.one.myplayer.MySuggestionProvider" />
 
-        <activity android:name=".Equaliser"></activity>
+        <activity android:name="com.androidplay.one.myplayer.activities.Equaliser" />
+        <activity android:name="com.androidplay.one.myplayer.activities.Edit_Info_songs"></activity>
+        <activity android:name="com.androidplay.one.myplayer.ringdroid_classes.RingdroidEditActivity"></activity>
+        <activity android:name="com.androidplay.one.myplayer.activities.MyWifiActivity"></activity>
     </application>
 
 </manifest>

@@ -1,8 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <!--<item android:icon="@drawable/equaliser_white"
+        android:title="equaliser"
+        app:showAsAction="ifRoom"
+        android:id="@+id/player_equaliser"
+        >
+    </item>-->
     <item android:icon="@drawable/queue"
-            android:title="queue"
+        android:title="queue"
         app:showAsAction="ifRoom"
         android:id="@+id/queue"
         >

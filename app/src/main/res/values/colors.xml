@@ -45,20 +45,20 @@
 -->
 
     <!--night795548
-    <color name="colorPrimarynight">#37474f</color>
-    <color name="colorPrimaryDarknight">#263238</color>
+    <color name="colorPrimarynight">#243447</color>
+    <color name="colorPrimaryDarknight">#1b2836</color>
     <color name="colorAccentnight">#00BCD4</color>
-    <color name="colorPrimaryLightnight">#475761 </color>
+    <color name="colorPrimaryLightnight">#37474f </color>
     <color name="colorPrimarybackgroundnight">#19242f </color>
 
 -->
-    <!--night795548-->
+    <!--night111214-->
 
+    <color name="colorPrimarynight">#18181a</color>
+    <color name="colorPrimaryDarknight">#151517</color>
+    <color name="colorAccentnight">#00BCD4</color>
+    <color name="colorPrimaryLightnight">#222628 </color>
 
-        <color name="colorPrimarynight">#243447</color>
-        <color name="colorPrimaryDarknight">#1b2836</color>
-        <color name="colorAccentnight">#00BCD4</color>
-        <color name="colorPrimaryLightnight">#37474f </color>
 
 
 
@@ -66,11 +66,39 @@
     <color name="colorbackgroundbrown">#64423d</color>
     <color name="colorbackgroundgrey">#333333</color>
 
-        <color name="colorSecondaryText">#848484</color>
-        <color name="colorPrimaryText">#212121</color>
-        <color name="colorSecondaryTextNight">#cccccc</color>
-        <color name="colorPrimaryTextNight">#eeeeee</color>
-        <color name="colorWhite">#FFFFFF</color>
-        <color name="colortransparent">#00FFFFFF</color>
-        <color name="colorblack">#ff000000</color>
-    </resources>
+    <color name="colorSecondaryText">#848484</color>
+    <color name="colorPrimaryText">#212121</color>
+
+    <color name="colorSecondaryTextNight">#aaaaaa</color>
+    <color name="colorPrimaryTextNight">#dddddd</color>
+
+    <color name="colorSecondaryLightText">#aaaaaa</color>
+    <color name="colorPrimaryLightText">#dddddd</color>
+
+
+    <color name="colorWhite">#FFFFFF</color>
+    <color name="colortransparent">#00FFFFFF</color>
+    <color name="colorblack">#ff000000</color>
+
+
+
+
+
+
+    <!--ringdroid colours-->
+    <color name="waveform_selected">#33b5e5</color>
+    <color name="waveform_unselected">#195a72</color>
+    <color name="waveform_unselected_bkgnd_overlay">#0a242d</color>
+    <color name="selection_border">#ffffff</color>
+    <color name="playback_indicator">#ffff66</color>
+    <color name="grid_line">#66ffffff</color>
+    <color name="timecode">#ddffffdd</color>
+    <color name="timecode_shadow">#aa000000</color>
+
+    <color name="type_bkgnd_alarm">#88880000</color>
+    <color name="type_bkgnd_ringtone">#88008888</color>
+    <color name="type_bkgnd_notification">#88666600</color>
+    <color name="type_bkgnd_music">#88000000</color>
+    <color name="type_bkgnd_unsupported">#88cccccc</color>
+
+</resources>

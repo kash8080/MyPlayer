@@ -15,4 +15,6 @@
     <integer name="Recview_endmargin">8</integer>
     <bool name="is_landscape">false</bool>
 
+    <integer name="card_flip_time_half">50</integer>
+    <integer name="card_flip_time_full">100</integer>
 </resources>

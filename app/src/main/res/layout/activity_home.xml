@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:recyclerviewfastscroller="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -27,5 +28,13 @@
         app:rfs_handleColor="#00BCD4"
 
         />
-
+    <com.androidplay.one.myplayer.fast_rec_view.ColorGroupSectionTitleIndicator
+        android:id="@+id/fast_scroller_section_title_indicator"
+        android:layout_width="wrap_content"
+        android:layout_height="72dp"
+        android:layout_toLeftOf="@id/fast_scroller"
+        android:layout_toStartOf="@id/fast_scroller"
+        recyclerviewfastscroller:rfs_backgroundColor="#ffaaaaaa"
+        recyclerviewfastscroller:rfs_textColor="@android:color/black"
+        />
 </RelativeLayout>

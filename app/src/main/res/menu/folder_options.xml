@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:title="play"
+        android:id="@+id/folder_play"
+        >
+    </item>
+    <item android:title="add to queue"
+        android:id="@+id/folder_addtoqueue"
+        >
+    </item>
+    <item android:title="add to playlist"
+        android:id="@+id/folder_addtoplaylist"
+        >
+    </item>
+    <item android:title="delete"
+        android:id="@+id/folder_delete"
+        >
+    </item>
+</menu>

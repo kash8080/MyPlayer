@@ -1,26 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <CheckBoxPreference
-        android:key="check"
-        android:summary="click to enable Night mode"
-        android:title="Night mode"
-        android:defaultValue="false" />
+    <PreferenceCategory
+        android:title="General"
+        >
+        <CheckBoxPreference
+            android:key="lock_screen"
+            android:summary="Full size lock screen album image"
+            android:title="Lock screen Image"
+            android:defaultValue="true" />
+        <CheckBoxPreference
+            android:key="equaliser_setting"
+            android:summary="Click to disable equaliser"
+            android:title="Equaliser"
+            android:defaultValue="true" />
+    </PreferenceCategory>
+    <PreferenceCategory
+        android:title="App Theme">
+        <CheckBoxPreference
+            android:key="check"
+            android:summary="Click to enable Night mode"
+            android:title="Night mode"
+            android:defaultValue="false" />
 
-    <ListPreference
-        android:key="THEME_LIST"
-        android:title="App Theme"
-        android:summary="Change App theme"
-        android:defaultValue="4"
-        android:dialogTitle="Choose a Theme"
-        android:entries="@array/theme_entries"
-        android:entryValues="@array/theme_values" />
+        <ListPreference
+            android:key="THEME_LIST"
+            android:title="Theme colour"
+            android:summary="Choose the colour of toolbar"
+            android:defaultValue="1"
+            android:dialogTitle="Choose a Theme"
+            android:entries="@array/theme_entries"
+            android:entryValues="@array/theme_values" />
 
-    <com.androidplay.rahul.myplayer.ImagePickerPreference
-        android:key="image_chooser"
-        android:title="Choose an Image"
-        android:defaultValue="0"
-        android:dialogTitle="Choose a Theme"
+        <com.androidplay.one.myplayer.ImagePickerPreference
+            android:key="image_chooser"
+            android:title="Background"
+            android:defaultValue="0"
+            android:summary="Choose different background."
+            android:dialogTitle="Choose an Image"
 
-        />
+            />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title="Animations"
+        >
+        <CheckBoxPreference
+            android:key="album_transition"
+            android:summary="Animation while opening an Album."
+            android:title="Album transition"
+            android:defaultValue="true" />
+
+    </PreferenceCategory>
 </PreferenceScreen>

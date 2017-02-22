@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+
+        android:id="@+id/open_contextual_delete"
+        android:orderInCategory="30"
+        android:title="Delete"
+        app:showAsAction="never"
+        />
+    <item
+        android:id="@+id/open_contextual_addtoqueue"
+        android:orderInCategory="10"
+        android:title="Add to queue"
+        app:showAsAction="never"
+        />
+    <item
+        android:id="@+id/open_contextual_addtoplaylist"
+        android:orderInCategory="20"
+        android:title="Add to playlist"
+        app:showAsAction="never"
+        />
+    <item
+        android:id="@+id/open_contextual_share"
+        android:icon="@drawable/share_white"
+
+        android:orderInCategory="1"
+        android:title="Share"
+        app:showAsAction="ifRoom"
+        />
+    <item
+        android:id="@+id/open_contextual_remove_from_playlist"
+        android:orderInCategory="1"
+        android:title="Remove from Playlist"
+        app:showAsAction="never"
+        />
+</menu>

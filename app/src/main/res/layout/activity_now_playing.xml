@@ -58,7 +58,15 @@
                     android:layout_alignParentEnd="true"
                     app:rfs_handleColor="#00BCD4"
                     android:layout_alignParentRight="true" />
-
+                <com.androidplay.one.myplayer.fast_rec_view.ColorGroupSectionTitleIndicator
+                    android:id="@+id/fast_scroller_section_title_indicator"
+                    android:layout_width="wrap_content"
+                    android:layout_height="72dp"
+                    android:layout_toLeftOf="@id/fast_scroller3"
+                    android:layout_toStartOf="@id/fast_scroller3"
+                    app:rfs_backgroundColor="#ffaaaaaa"
+                    app:rfs_textColor="@android:color/black"
+                    />
              </RelativeLayout>
 
         </LinearLayout>

@@ -7,6 +7,7 @@
     android:transitionName="slider"
     xmlns:android="http://schemas.android.com/apk/res/android">
 
+
     <android.support.v7.widget.Toolbar
         android:layout_width="match_parent"
         android:layout_height="50dp"
@@ -30,7 +31,6 @@
                 android:layout_width="50dp"
                 android:id="@+id/bar_image"
                 android:background="#ffffff"
-                android:src="@drawable/mp3full"
                 />
             <FrameLayout
 
@@ -44,7 +44,7 @@
                     android:layout_height="match_parent">
                     <TextView
 
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:maxLines="1"
                         android:layout_marginTop="5dp"
                         android:layout_marginEnd="50dp"
@@ -58,14 +58,14 @@
                         android:focusableInTouchMode="true"
                         android:scrollHorizontally="true"
                         android:textColor="@color/colorPrimaryText"
-                        android:layout_height="25dp" />
+                        android:layout_height="wrap_content" />
                     <TextView
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:textColor="@color/colorSecondaryText"
                         android:id="@+id/bar_artist"
                         android:lines="1"
                         android:textSize="12sp"
-                        android:layout_height="25dp" />
+                        android:layout_height="wrap_content" />
                 </LinearLayout>
                 <ImageButton
                     android:background="#ffffffff"
@@ -95,6 +95,12 @@
             android:layout_height="match_parent"
             >
         </View>
+        <android.support.v4.view.ViewPager
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:id="@+id/sliderviewpager"
+            >
+        </android.support.v4.view.ViewPager>
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="120dp"
@@ -119,7 +125,7 @@
 
 
                     <TextView
-                        android:layout_width="35dp"
+                        android:layout_width="wrap_content"
                         android:textSize="16sp"
                         android:id="@+id/current_time"
                         android:paddingTop="20dp"
@@ -137,7 +143,7 @@
 
                         />
                     <TextView
-                        android:layout_width="35dp"
+                        android:layout_width="wrap_content"
                         android:textSize="16sp"
                         android:textColor="#ffffff"
                         android:paddingTop="17dp"

@@ -59,13 +59,14 @@
         <item name="colorAccent">@color/colorAccentnight</item>
         <item name="actionModeBackground">@color/colorPrimaryLightnight</item>
 
+
     </style>
     <style name="MyCustomTabLayout" parent="Widget.Design.TabLayout">
 
         <item name="tabIndicatorColor">?attr/colorAccent</item>
         <item name="tabIndicatorHeight">2dp</item>
-        <item name="tabPaddingStart">15dp</item>
-        <item name="tabPaddingEnd">15dp</item>
+        <item name="tabPaddingStart">4dp</item>
+        <item name="tabPaddingEnd">4dp</item>
         <item name="tabTextAppearance">@style/MyCustomTabTextAppearance</item>
         <item name="tabSelectedTextColor">#ffffff</item>
     </style>
@@ -79,7 +80,6 @@
     <style name="toolbar" parent="ThemeOverlay.AppCompat.Dark.ActionBar">
         <item name="android:dropDownItemStyle">@style/myDropDownItemStyle</item>
         <item name="android:dropDownListViewStyle">@style/myDropDownListViewStyle</item>
-
     </style>
 
 
@@ -92,5 +92,65 @@
 
     <style name="myDropDownListViewStyle" parent="Widget.AppCompat.ListView.DropDown">
         <item name="android:background">#FFF</item>
+    </style>
+
+
+
+
+
+
+
+
+
+    <!-- ringdroid styles-->
+    <style name="AudioFileInfoOverlayText">
+        <item name="android:paddingLeft">4px</item>
+        <item name="android:paddingBottom">4px</item>
+        <item name="android:textColor">#ffffffff</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:shadowColor">#000000</item>
+        <item name="android:shadowDx">1</item>
+        <item name="android:shadowDy">1</item>
+        <item name="android:shadowRadius">1</item>
+        <item name="android:focusable">true</item>
+    </style>
+
+    <style name="ToolbarBackground">
+        <item name="android:background">#222233</item>
+    </style>
+
+    <style name="ChooseContactBackground">
+        <item name="android:background">#cc9933</item>
+    </style>
+
+    <style name="VerticalDividerForList">
+        <item name="android:layout_width">1px</item>
+        <item name="android:layout_height">fill_parent</item>
+        <item name="android:layout_marginLeft">4px</item>
+        <item name="android:background">#444444</item>
+    </style>
+
+    <style name="VerticalDividerLeft">
+        <item name="android:layout_width">1px</item>
+        <item name="android:layout_height">fill_parent</item>
+        <item name="android:layout_marginLeft">4px</item>
+        <item name="android:background">#666677</item>
+    </style>
+    <style name="VerticalDividerRight">
+        <item name="android:layout_width">1px</item>
+        <item name="android:layout_height">fill_parent</item>
+        <item name="android:layout_marginRight">4px</item>
+        <item name="android:background">#000022</item>
+    </style>
+
+    <style name="HorizontalDividerTop">
+        <item name="android:layout_width">fill_parent</item>
+        <item name="android:layout_height">1px</item>
+        <item name="android:background">#666677</item>
+    </style>
+    <style name="HorizontalDividerBottom">
+        <item name="android:layout_width">fill_parent</item>
+        <item name="android:layout_height">1px</item>
+        <item name="android:background">#000022</item>
     </style>
 </resources>
